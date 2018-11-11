@@ -18,26 +18,27 @@ parser.add_argument('--lock', dest='training_lock', default='none', choices=['no
 
 args = parser.parse_args()
 train_path, test_path = util.get_necessary_data(args.dataset_name, '.' + os.sep + 'data')
-# util.augment_data(scalar=2, data_dir=train_path, balance=True)
+if args.augment_dataset:
+    util.augment_data(scalar=2, data_dir=train_path, balance=True)
 
 # New settings
-# settings = Settings({
-#     'conv_filters': [32, 32, 64, 64, 128, 128],
-#     'conv_kernels': [2, 2, 2, 2, 2, 2],
-#     'pooling_after_conv': [False, True, False, True, False, True],
-#     'fc_hidden': [128, 128],
-#     'height': args.height,
-#     'width': args.width,
-#     'batch_size': args.batch_size,
-#     'learning_rate': args.lr,
-#     'training_lock': args.training_lock,
-#     'model_name': args.model_name,
-#     'train_data_dir': train_path,
-#     'test_data_dir': test_path,
-# })
+settings = Settings({
+    'conv_filters': [32, 32, 64, 64, 128, 128],
+    'conv_kernels': [2, 2, 2, 2, 2, 2],
+    'pooling_after_conv': [False, True, False, True, False, True],
+    'fc_hidden': [128, 128],
+    'height': args.height,
+    'width': args.width,
+    'batch_size': args.batch_size,
+    'learning_rate': args.lr,
+    'training_lock': args.training_lock,
+    'model_name': args.model_name,
+    'train_data_dir': train_path,
+    'test_data_dir': test_path,
+})
 
 # Load settings
-settings = Settings(None, restore_from_path='./models/trial/settings.txt')
+# settings = Settings(None, restore_from_path='./models/trial/settings.txt')
 
 # Continue training from loaded settings file
 model.train(settings, n_epochs=args.epoch, restore_type='auto')
