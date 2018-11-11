@@ -151,7 +151,7 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                     else:
                         wrong += 1
                 batch_x, batch_y = data_manager.next_batch()
-            train_accuracy = 'accuracy: ' + str(round(100 * correct / (wrong + correct), 2))+'%'
+            train_accuracy = 'train accuracy: ' + str(round(100 * correct / (wrong + correct), 2))+'%'
             loss_avg = loss_sum  # / counter
 
             test_batch_x, test_batch_y = data_manager.next_test_batch()
@@ -166,7 +166,7 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                     else:
                         wrong += 1
                 test_batch_x, test_batch_y = data_manager.next_test_batch()
-            test_accuracy = 'accuracy: ' + str(round(100*correct/(wrong+correct), 2))+'%'
+            test_accuracy = 'test accuracy: ' + str(round(100*correct/(wrong+correct), 2))+'%'
             train_info = 'Epoch '+str(epoch + 1)+' / '+str(n_epochs-1)+' cost: '+str(round(loss_avg, 3))
 
             if min_cost > loss_sum or min_cost == -1:
