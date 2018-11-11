@@ -9,6 +9,10 @@ gray = lambda rgb: np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
 
 
 class DataManager:
+    """
+    This class reads and augments the data and ultimately provides
+    train and test data to a model in batch-sized portions.
+    """
     def __init__(self, settings, selection_mod=1):
         self.height = settings.get_setting_by_name('height')
         self.width = settings.get_setting_by_name('width')
@@ -26,15 +30,25 @@ class DataManager:
             settings.update({'num_classes': num_classes_train})
 
     def image_conversion(self, img):
+        """
+        Converts image to grayscale and resizes according to settings.
+        :param img: the image to be converted.
+        :return: the converted image as numpy array.
+        """
         img = gray(img)
         img = resize(img, (self.height, self.width), anti_aliasing=False)
         img = np.ndarray.astype(img, np.float32)  # convert to uint8
         return img
 
-    def read(self, data_dir, selection_mod):
-        """""
-        reads all images from subdiretories 
-        """""
+    def read(self, data_dir, selection_mod, print_distribution=True):
+        """
+        Reads all images from subdirectories and creates corresponding labels.
+        Optionally, a sample distribution over the classes will be printed.
+        :param data_dir: the directory containing a folder for each class which in turn contain the data.
+        :param selection_mod: optional modulo value for skipping a portion of the images.
+        :param print_distribution: if true, a distribution of samples over the classes will be printed to console.
+        :return: the images, labels and number of classes.
+        """
         images = []
         labels = []
 
@@ -58,9 +72,10 @@ class DataManager:
             sys.stdout.flush()
             distribution.append((subdirs[i], counter))
 
-        graph = Pyasciigraph()
-        for line in graph.graph('\nclass distribution:', distribution):
-            print(line)
+        if print_distribution:
+            graph = Pyasciigraph()
+            for line in graph.graph('\nclass distribution:', distribution):
+                print(line)
         print(np.shape(images), ' ', np.shape(labels))
         print("total number of images: " + str(len(images)))
         images = np.array(images)
@@ -72,20 +87,25 @@ class DataManager:
         return images, labels, len(subdirs)
 
     def next_batch(self):
+        """
+        Returns next train batch.
+        :return: images and labels as numpy arrays. First dimension is equal to batch_size
+        """
         return self.train_provider.next_batch()
 
     def next_test_batch(self):
+        """
+        Returns next test batch.
+        :return: images and labels as numpy arrays. First dimension is equal to batch_size
+        """
         return self.test_provider.next_batch()
-
-    @staticmethod
-    def get_num_videos(settings):
-        f = []
-        for (dirpath, dirnames, filenames) in os.walk(settings.get_setting_by_name('train_data_dir')):
-            f.extend(filenames)
-        return len(f)
 
 
 class BatchProvider:
+    """
+    Provides data and labels in the order they were first read.
+    This is suitable for testing and validation, because order is irrelevant in these cases.
+    """
     def __init__(self, data, labels, batch_size):
         self.data = data
         self.labels = labels
@@ -94,6 +114,12 @@ class BatchProvider:
         self.reset()
 
     def next_batch(self):
+        """
+        Returns next batch of size batch_size until no more data is available.
+        If less data than a single batch_size remains, a single smaller batch will be returned.
+        After this an empty batch will be returned to signal the end of the epoch and the dataset will be reset via the reset() function.
+        :return: The next batch as specified above.
+        """
         if self.iteration == -1:
             self.reset()
             return [], []
@@ -113,6 +139,10 @@ class BatchProvider:
 
 
 class RandomBatchProvider:
+    """
+    Provides data and labels in a random order.
+    This provider should be used for the training data to keep the model balanced.
+    """
     def __init__(self, data, labels, batch_size):
         self.data = data
         self.labels = labels
@@ -121,6 +151,12 @@ class RandomBatchProvider:
         self.reset()
 
     def next_batch(self):
+        """
+        Returns next batch of size batch_size until no more data is available.
+        If less data than a single batch_size remains, a single smaller batch will be returned.
+        After this an empty batch will be returned to signal the end of the epoch and the dataset will be reset via the reset() function.
+        :return: The next batch as specified above.
+        """
         if self.iteration == -1:
             self.reset()
             return [], []
@@ -136,6 +172,10 @@ class RandomBatchProvider:
             return batch_x, batch_y
 
     def reset(self):
+        """
+        Resets the data by shuffling data and labels jointly
+        :return:
+        """
         self.iteration = 0
         perm = np.arange(len(self.data))
         np.random.shuffle(perm)

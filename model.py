@@ -6,10 +6,10 @@ from data import DataManager
 
 def model(x, y, dropout_probability, settings):
     """
-    This method builds the predictor model
-    :param x: The input to be processed by the detector. Expected to be of size [None, settings.height * settings.width]
+    This method builds the classification model
+    :param x: The input to be processed by the classifier. Expected to be of size [None, settings.height * settings.width]
     :param y: The label corresponding to input x
-    :param dropout_probability: placeholder for dropout probabiltiy so that it can be utilized dynamically
+    :param dropout_probability: placeholder for dropout probability so that it can be utilized dynamically
     :param settings: The settings determining the construction of the model.
     :return: The output produced by the model as well as the loss.
     """
@@ -72,7 +72,9 @@ def model(x, y, dropout_probability, settings):
 
 def train(settings, n_epochs=401, restore_type='', restore_data=''):
     """
-    Train a model. While the model keeps improving it will be saved every 10 epochs, otherwise only once every 50 epochs.
+    Train a model.
+    While the model keeps improving it will be saved to disk.
+    Once a model has been saved it can be retrieved in various ways given through restore_type and restore_data.
 
     :param settings: the settings providing all the necessary information for building the model and gathering the input data.
     :param n_epochs: the number of epochs for which the model will be trained. One epoch utilizes all training material exactly once.
@@ -81,6 +83,7 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                         'path': for reading save from path given in restore_data
                         'by_name': for restoring from save from settings.save_path dir with name restore_data
                         'transfer': restores only the convolutional layers and retrains the dense layers, restores from path given in restore_data
+    :param restore_data: depending on the restore type, restore data must provide the according information - either the name or path of a saved model
     """
     data_manager = DataManager(settings)
 

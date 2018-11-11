@@ -2,15 +2,17 @@ import os
 
 
 class Settings:
+    """
+    This class allows for saving and loading of settings related to the model and training process.
+    New settings can be added and updated dynamically through the use of the SettingsItem class.
+    During runtime settings should be retrieved via get_settings_by_name(settings_name).
+    """
     separator = ';'
     logs_path = '.'+os.sep+'logs'+os.sep
     models_path = '.'+os.sep+'models'+os.sep
-    settings_path = None
-
     settings = []
 
     def __init__(self, arg_dict, restore_from_path=None):
-
         if restore_from_path is None:
             for key in arg_dict:
                 value = arg_dict[key]
@@ -30,6 +32,12 @@ class Settings:
             self.load(restore_from_path)
 
     def save(self, update=False, check_overwrite=False):
+        """
+        Saves settings as settings.txt file
+        :param update: Replace old settings.
+        :param check_overwrite: Check saving overwrites old settings. Take action accordingly
+        :return: void
+        """
         settings_path = self.models_path + self.get_setting_by_name('model_name') + os.sep + 'settings.txt'
         dir_path = self.models_path + self.get_setting_by_name('model_name')
 
@@ -59,7 +67,11 @@ class Settings:
         self.settings_path = settings_path
 
     def load(self, path):
-
+        """
+        Loads settings from path.
+        :param path: Path to settings.txt file
+        :return: void
+        """
         self.settings = []
         file = open(path, 'r')
         lines = file.readlines()
@@ -73,6 +85,12 @@ class Settings:
         print('settings restored.')
 
     def update(self, arg_dict):
+        """
+        Iterates over the given dict. If settings with same name is already
+        present it will be replaced, otherwise a new setting is added.
+        Modified settings will be written to disk.
+        :param arg_dict: The dict with the new/updated settings.
+        """
         for key in arg_dict:
             value = arg_dict[key]
             is_list = False
@@ -91,17 +109,31 @@ class Settings:
         self.save(update=True)
 
     def get_setting_by_name(self, name):
+        """
+        Method for retrieving the value of a specific setting.
+        :param name: The settings name.
+        :return: The desired settings value.
+        """
         for settings_item in self.settings:
             if settings_item.name == name:
                 return settings_item.value
         return None
 
     def print(self):
+        """
+        Prints data and metadata about all current settings
+        :return: void
+        """
         for setting in self.settings:
             print(setting)
 
 
 class SettingsItem:
+    """
+    Class representing a single setting via its name, value as well as its data type and whether it is a list.
+    The meta data is needed to automatically save and restore the data in its correct form.
+    Supported data types are: int, str, bool, float.
+    """
     def __init__(self, name, type, value, is_list=False, read=False):
         self.name = name
         if type not in {'int', 'str', 'bool', 'float'}:

@@ -6,7 +6,7 @@ import datetime
 import downloader
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--epoch', dest='epoch', type=int, default=1000)
+parser.add_argument('--epoch', dest='epoch', type=int, default=2000)
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=20)
 parser.add_argument('--height', dest='height', type=int, default=32)
 parser.add_argument('--width', dest='width', type=int, default=32)
@@ -18,6 +18,7 @@ parser.add_argument('--lock', dest='training_lock', default='none', choices=['no
 args = parser.parse_args()
 train_path, test_path = downloader.get_necessary_data(args.dataset_name, '.' + os.sep + 'data')
 
+# New settings
 settings = Settings({
     'conv_filters': [32, 32, 64, 64, 128, 128],
     'conv_kernels': [2, 2, 2, 2, 2, 2],
@@ -33,10 +34,17 @@ settings = Settings({
     'test_data_dir': test_path,
 })
 
+# Load settings
 # settings = Settings(None, restore_from_path='./models/deep-cnn/settings.txt')
 
-# model.train(settings, n_epochs=args.epoch, restore_type='auto')
+# Continue training from loaded settings file
+model.train(settings, n_epochs=args.epoch, restore_type='auto')
+
+# Continue training from certain epoch out of the models save directory
 # model.train(settings, n_epochs=args.epoch, restore_type='by_name', restore_data='epoch192')
+
+# Load model from path and start training
 # model.train(settings, n_epochs=args.epoch, restore_type='path', restore_data='./models/minimalistic-cnn/saves/epoch100.ckpt')
-# model.train(settings, n_epochs=args.epoch, restore_type='transfer', restore_data='./models/deep-cnn/saves/epoch47.ckpt')
-model.train(settings, n_epochs=args.epoch, restore_type='transfer', restore_data='./models/deep-cnn/saves/epoch119.ckpt')
+
+# Load only certain parts of model given by path and start training. Loaded parts will be locked for training (--lock)
+# model.train(settings, n_epochs=args.epoch, restore_type='transfer', restore_data='./models/deep-cnn/saves/epoch119.ckpt')
