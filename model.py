@@ -93,8 +93,14 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
 
     prediction, loss = model(x, y, dropout_probability, settings)
 
+    global_step = tf.Variable(0, trainable=False)
+    learning_rate = tf.train.exponential_decay(learning_rate=settings.get_setting_by_name('learning_rate'),
+                                               global_step=global_step, decay_steps=data_manager.batches_per_epoch(),
+                                               decay_rate=settings.get_setting_by_name('learning_rate_decay'))
+    print(data_manager.batches_per_epoch())
+
     with tf.name_scope('opt'):
-        optimizer = tf.train.AdamOptimizer(learning_rate=settings.get_setting_by_name('learning_rate')).minimize(loss)
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss, global_step=global_step)
 
     tf.summary.scalar("cost", loss)
     merged_summary_op = tf.summary.merge_all()
@@ -127,20 +133,21 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                 dnn_saver.restore(sess, restore_data)
                 print('DNN restored from ', restore_data, ' and LOCKED!')
 
-
         min_cost = -1
         new_best = False
         no_improvement_counter = 0
         last_save_counter = 0
-        for epoch in range(n_epochs+1):
+        for epoch in range(n_epochs):
             loss_sum = 0
             counter = 0
             correct = 0
             wrong = 0
             batch_x, batch_y = data_manager.next_batch()
 
-            while batch_x != []:
-                _prediction, _, c, summary = sess.run([prediction, optimizer, loss, merged_summary_op], feed_dict={x: batch_x, y:batch_y, dropout_probability: 0.8})
+            # ===== TRAIN =====
+            while len(batch_x) != 0:
+                _prediction, _, c, summary = sess.run([prediction, optimizer, loss, merged_summary_op],
+                                                      feed_dict={x: batch_x, y:batch_y, dropout_probability: settings.get_setting_by_name('dropout')})
                 loss_sum += c
                 counter += 1
                 # writer.add_summary(summary, epoch * n_batches + i) # TODO writer
@@ -158,10 +165,11 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
             wrong = 0
             correct = 0
 
-            while test_batch_x != []:
-                _prediction, _cost = sess.run([prediction, loss], feed_dict={x: test_batch_x, y: test_batch_y})
+            # ===== TEST =====
+            while len(test_batch_x) != 0:
+                test_prediction, _loss = sess.run([prediction, loss], feed_dict={x: test_batch_x, y: test_batch_y})
                 for i in range(np.shape(test_batch_y)[0]):
-                    if list(test_batch_y[i]).index(max(test_batch_y[i])) == list(_prediction[i]).index(max(_prediction[i])):
+                    if np.argmax(test_batch_y[i]) == np.argmax(test_prediction[i]):
                         correct += 1
                     else:
                         wrong += 1
