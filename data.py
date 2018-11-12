@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import imageio
 import numpy as np
 import os
@@ -22,7 +24,7 @@ class DataManager:
         print('reading test data:')
         self.test_images, self.test_labels, num_classes_test = self.read(settings.get_setting_by_name('test_data_dir'), selection_mod)
         self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size)
-        self.test_provider = BatchProvider(self.train_images, self.labels, self.batch_size)
+        self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size)
         if num_classes_train != num_classes_test:
             print("number of classes of train and test set don't match!")
             sys.exit(0)
@@ -76,7 +78,6 @@ class DataManager:
             graph = Pyasciigraph()
             for line in graph.graph('\nclass distribution:', distribution):
                 print(line)
-        print(np.shape(images), ' ', np.shape(labels))
         print("total number of images: " + str(len(images)))
         images = np.array(images)
         labels = np.array(labels)
@@ -100,12 +101,14 @@ class DataManager:
         """
         return self.test_provider.next_batch()
 
+    def batches_per_epoch(self):
+        """
+        :return: the number of batches per epoch
+        """
+        return int(len(self.train_images)/self.batch_size)
+
 
 class BatchProvider:
-    """
-    Provides data and labels in the order they were first read.
-    This is suitable for testing and validation, because order is irrelevant in these cases.
-    """
     def __init__(self, data, labels, batch_size):
         self.data = data
         self.labels = labels
@@ -134,43 +137,25 @@ class BatchProvider:
             self.iteration += 1
             return batch_x, batch_y
 
+    @abstractmethod
     def reset(self):
         self.iteration = 0
 
 
-class RandomBatchProvider:
+class OrderedBatchProvider(BatchProvider):
+    """
+    Provides data and labels in the order they were first read.
+    This is suitable for testing and validation, because order is irrelevant in these cases.
+    """
+    def reset(self):
+        self.iteration = 0
+
+
+class RandomBatchProvider(BatchProvider):
     """
     Provides data and labels in a random order.
     This provider should be used for the training data to keep the model balanced.
     """
-    def __init__(self, data, labels, batch_size):
-        self.data = data
-        self.labels = labels
-        self.batch_size = batch_size
-        self.iteration = 0
-        self.reset()
-
-    def next_batch(self):
-        """
-        Returns next batch of size batch_size until no more data is available.
-        If less data than a single batch_size remains, a single smaller batch will be returned.
-        After this an empty batch will be returned to signal the end of the epoch and the dataset will be reset via the reset() function.
-        :return: The next batch as specified above.
-        """
-        if self.iteration == -1:
-            self.reset()
-            return [], []
-        if (self.iteration + 1) * self.batch_size > len(self.data) - 1:
-            batch_x = self.data[self.iteration * self.batch_size:]
-            batch_y = self.labels[self.iteration * self.batch_size:]
-            self.iteration = -1
-            return batch_x, batch_y
-        else:
-            batch_x = self.data[self.iteration * self.batch_size:(self.iteration + 1) * self.batch_size]
-            batch_y = self.labels[self.iteration * self.batch_size:(self.iteration + 1) * self.batch_size]
-            self.iteration += 1
-            return batch_x, batch_y
-
     def reset(self):
         """
         Resets the data by shuffling data and labels jointly

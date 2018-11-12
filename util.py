@@ -4,6 +4,7 @@ import csv
 import zipfile
 
 import Augmentor
+from PIL import Image
 import requests
 from shutil import copyfile
 
@@ -65,7 +66,7 @@ def get_necessary_data(dataset_name, data_dir):
         if dataset_name == 'isf':
             download_file_from_google_drive('1Xvw7w3XKNLPWwfCZMKordtS7c-sIc_cs', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'gtsrb':
-            download_file_from_google_drive('1pD3PhvGhd8vXRazfzCjXe7dkNvXiUVtc', data_dir + os.sep + 'data.zip')
+            download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         print('unzipping..')
         zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
         zip_ref.extractall(data_dir)
@@ -115,7 +116,11 @@ def augment_data(scalar, data_dir, output_dir='auto', balance='False'):
         pipeline.shear(probability=0.1, max_shear_left=15, max_shear_right=15)
 
         if balance:
-            pipeline.sample(int(max_samples * scalar - distribution[i]))
+            try:
+                pipeline.sample(int(max_samples * scalar - distribution[i]))
+            except Exception as e:
+                print(e)
+                print(path)
         else:
             pipeline.sample(int(distribution[i] * scalar))
 
@@ -154,3 +159,36 @@ def save_response_content(response, destination):
         for chunk in response.iter_content(CHUNK_SIZE):
             if chunk: # filter out keep-alive new chunks
                 f.write(chunk)
+
+
+def convert_ppm_to_png(data_dir):
+    subdirs = list(os.walk(data_dir))[0][1]
+    for i in range(len(subdirs)):
+        path = os.path.join(data_dir, subdirs[i])
+        list_dir = os.listdir(path)
+        for image in list_dir:
+            if '.csv' in image:
+                os.remove(os.path.join(path, image))
+            else:
+                path_to_img = os.path.join(path, image)
+                print('pnmtopng '+path_to_img+' > .'+str(path_to_img).split('.')[1]+'.png')
+                os.system('pnmtopng '+path_to_img+' > .'+str(path_to_img).split('.')[1]+'.png')
+                os.remove(path_to_img)
+
+
+def change_image_mode_to_rgb(data_dir):
+    subdirs = list(os.walk(data_dir))[0][1]
+    for i in range(len(subdirs)):
+        path = os.path.join(data_dir, subdirs[i])
+        list_dir = os.listdir(path)
+        for image in list_dir:
+            if '.csv' in image:
+                os.remove(os.path.join(path, image))
+            else:
+                path_to_img = os.path.join(path, image)
+                image = Image.open(path_to_img)
+                # print(image.mode)
+                mode = image.mode
+                if mode != 'RGB':
+                    print(path_to_img + ' mode: ' + str(mode))
+                    image.convert('RGB').save(path_to_img)
