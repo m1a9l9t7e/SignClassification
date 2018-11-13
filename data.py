@@ -1,6 +1,6 @@
+import cv2
 from abc import abstractmethod
 
-import imageio
 import numpy as np
 import os
 import sys
@@ -20,9 +20,9 @@ class DataManager:
         self.width = settings.get_setting_by_name('width')
         self.batch_size = settings.get_setting_by_name('batch_size')
         print('reading train data:')
-        self.train_images, self.labels, num_classes_train = self.read(settings.get_setting_by_name('train_data_dir'), selection_mod)
+        self.train_images, self.labels, num_classes_train = self.read(settings.get_setting_by_name('train_data_dir'), settings.get_setting_by_name('channels'))
         print('reading test data:')
-        self.test_images, self.test_labels, num_classes_test = self.read(settings.get_setting_by_name('test_data_dir'), selection_mod)
+        self.test_images, self.test_labels, num_classes_test = self.read(settings.get_setting_by_name('test_data_dir'), settings.get_setting_by_name('channels'))
         self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size)
         self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size)
         if num_classes_train != num_classes_test:
@@ -31,18 +31,20 @@ class DataManager:
         else:
             settings.update({'num_classes': num_classes_train})
 
-    def image_conversion(self, img):
+    def image_conversion(self, image, channels):
         """
         Converts image to grayscale and resizes according to settings.
-        :param img: the image to be converted.
+        :param image: the image to be converted.
         :return: the converted image as numpy array.
         """
-        img = gray(img)
-        img = resize(img, (self.height, self.width), anti_aliasing=False)
-        img = np.ndarray.astype(img, np.float32)  # convert to uint8
-        return img
 
-    def read(self, data_dir, selection_mod, print_distribution=True):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if channels == 1 else image
+        image = cv2.resize(image, (self.height, self.width))
+        image = resize(image, (self.height, self.width), anti_aliasing=False)
+        image = np.ndarray.astype(image, np.float32)  # convert to uint8
+        return image
+
+    def read(self, data_dir, channels, print_distribution=True):
         """
         Reads all images from subdirectories and creates corresponding labels.
         Optionally, a sample distribution over the classes will be printed.
@@ -64,8 +66,10 @@ class DataManager:
             for image in list_dir:
                 if '.csv' in image:
                     continue
-                image = imageio.imread(os.path.join(path, image))
-                images.append(self.image_conversion(image))
+                image = cv2.imread(os.path.join(path, image))
+                if len(np.shape(image)) < 3:
+                    image = np.expand_dims(image, 2)
+                images.append(self.image_conversion(image, channels))
                 label = np.zeros(len(subdirs), np.float32)
                 label[i] = 1.0
                 labels.append(label)
@@ -79,9 +83,10 @@ class DataManager:
             for line in graph.graph('\nclass distribution:', distribution):
                 print(line)
         print("total number of images: " + str(len(images)))
+        print(np.shape(images))
         images = np.array(images)
         labels = np.array(labels)
-        images = np.reshape(images, [images.shape[0], images.shape[1] * images.shape[2]])
+        images = np.reshape(images, [images.shape[0], images.shape[1] * images.shape[2] * channels])
         if len(images) < self.batch_size:
             print('fewer images than a single batch size available!')
             sys.exit()
@@ -154,7 +159,7 @@ class OrderedBatchProvider(BatchProvider):
 class RandomBatchProvider(BatchProvider):
     """
     Provides data and labels in a random order.
-    This provider should be used for the training data to keep the model balanced.
+    This provider should be used for the train data to keep the model balanced.
     """
     def reset(self):
         """

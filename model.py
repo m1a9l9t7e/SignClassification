@@ -18,7 +18,7 @@ def model(x, y, dropout_probability, settings):
     pooling_after_conv = settings.get_setting_by_name('pooling_after_conv')
     kernel_sizes = settings.get_setting_by_name('conv_kernels')
     fc_hidden_units = settings.get_setting_by_name('fc_hidden')
-    tensor = tf.reshape(x, shape=[-1, settings.get_setting_by_name('height'), settings.get_setting_by_name('width'), 1])
+    tensor = tf.reshape(x, shape=[-1, settings.get_setting_by_name('height'), settings.get_setting_by_name('width'), settings.get_setting_by_name('channels')])
     temp_width = settings.get_setting_by_name('width')
     temp_height = settings.get_setting_by_name('height')
     training_lock = settings.get_setting_by_name('training_lock')
@@ -57,12 +57,10 @@ def model(x, y, dropout_probability, settings):
             print(description)
 
     with tf.variable_scope('out'):
-        fc = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'), activation=tf.nn.relu,
-                             kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
-                             bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
-        tensor = tf.nn.dropout(fc, dropout_probability)
+        output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'), activation=tf.nn.softmax,
+                                 kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
+                                 bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
         print('out: ' + str(settings.get_setting_by_name('num_classes')))
-        output = tf.nn.softmax(tensor)
 
     with tf.variable_scope('loss'):
         loss = tf.reduce_mean(tf.square(tf.subtract(output, y)))
@@ -77,8 +75,8 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
     Once a model has been saved it can be retrieved in various ways given through restore_type and restore_data.
 
     :param settings: the settings providing all the necessary information for building the model and gathering the input data.
-    :param n_epochs: the number of epochs for which the model will be trained. One epoch utilizes all training material exactly once.
-    :param restore_type: restore model and continue training. Either
+    :param n_epochs: the number of epochs for which the model will be trained. One epoch utilizes all train material exactly once.
+    :param restore_type: restore model and continue train. Either
                         'auto': for automatic continuation
                         'path': for reading save from path given in restore_data
                         'by_name': for restoring from save from settings.save_path dir with name restore_data
@@ -87,7 +85,7 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
     """
     data_manager = DataManager(settings)
 
-    x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width') * settings.get_setting_by_name('height')])
+    x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width') * settings.get_setting_by_name('height') * settings.get_setting_by_name('channels')])
     y = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('num_classes')])
     dropout_probability = tf.placeholder_with_default(1.0, shape=())
 
@@ -175,7 +173,7 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                         wrong += 1
                 test_batch_x, test_batch_y = data_manager.next_test_batch()
             test_accuracy = 'test accuracy: ' + str(round(100*correct/(wrong+correct), 2))+'%'
-            train_info = 'Epoch '+str(epoch + 1)+' / '+str(n_epochs-1)+' cost: '+str(round(loss_avg, 3))
+            train_info = 'Epoch '+str(epoch + 1)+' / '+str(n_epochs)+' cost: '+str(round(loss_avg, 3))
 
             if min_cost > loss_sum or min_cost == -1:
                 min_cost = loss_sum
@@ -190,7 +188,7 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                 else:
                     train_info += ' :|'
 
-            print(train_info, ' ', test_accuracy, ' ', train_accuracy)
+            print(train_info, ' ', train_accuracy, ' ', test_accuracy)
             last_save_counter += 1
 
             if new_best and last_save_counter > 5:
