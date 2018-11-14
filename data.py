@@ -1,13 +1,9 @@
 import cv2
 from abc import abstractmethod
-
 import numpy as np
 import os
 import sys
-from skimage.transform import resize
 from ascii_graph import Pyasciigraph
-
-gray = lambda rgb: np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
 
 
 class DataManager:
@@ -37,11 +33,9 @@ class DataManager:
         :param image: the image to be converted.
         :return: the converted image as numpy array.
         """
-
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if channels == 1 else image
         image = cv2.resize(image, (self.height, self.width))
-        image = resize(image, (self.height, self.width), anti_aliasing=False)
-        image = np.ndarray.astype(image, np.float32)  # convert to uint8
+        image = np.ndarray.astype(image, np.float32)
         return image
 
     def read(self, data_dir, channels, print_distribution=True):
@@ -49,8 +43,8 @@ class DataManager:
         Reads all images from subdirectories and creates corresponding labels.
         Optionally, a sample distribution over the classes will be printed.
         :param data_dir: the directory containing a folder for each class which in turn contain the data.
-        :param selection_mod: optional modulo value for skipping a portion of the images.
         :param print_distribution: if true, a distribution of samples over the classes will be printed to console.
+        :param channels: number of channels for each image (has to be smaller or equal to channels of raw data)
         :return: the images, labels and number of classes.
         """
         images = []

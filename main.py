@@ -19,50 +19,50 @@ parser.add_argument('--channels', dest='channels', type=int, default=1)
 parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001)
 parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, default=0.99)
 parser.add_argument('--dropout', dest='dropout_probability', type=float, default=0.8)
+parser.add_argument('--batch_norm', dest='batch_norm', type=bool, default=False)
 parser.add_argument('--model', dest='model_name', default=datetime.datetime.now().strftime("%I_%M%p_on_%B_%d,_%Y"))
 parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['gtsrb', 'isf', 'mnist'])
 parser.add_argument('--augment', dest='augment_dataset', type=bool, default=False, choices=[True, False])
-parser.add_argument('--lock', dest='training_lock', default='none', choices=['none', 'cnn', 'dnn', 'cnn-dnn'])
+parser.add_argument('--restore', dest='restore_type', default='auto', choices=['auto', 'by_name', 'path', 'transfer'])
+parser.add_argument('--restore_data', dest='restore_data', default='')
+parser.add_argument('--lock', dest='training_lock', type=str, default='none', choices=['none', 'cnn', 'dnn', 'cnn-dnn'])
+parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
 
 args = parser.parse_args()
 train_path, test_path = util.get_necessary_data(args.dataset_name, '.' + os.sep + 'data')
 
 if args.augment_dataset:
-    util.augment_data(scalar=4, data_dir=train_path, balance=True)
+    # Augment training set
+    util.augment_data(scalar=2, data_dir=train_path, balance=False)
 
-# New settings
-settings = Settings({
-    'conv_filters': [16, 16, 32, 32, 64, 64, 128, 128],
-    'conv_kernels': [2, 2, 3, 2, 2, 2, 2, 2],
-    'pooling_after_conv': [False, True, False, True, False, True, False, True],
-    'fc_hidden': [128],
-    'height': args.height,
-    'width': args.width,
-    'channels': args.channels,
-    'batch_size': args.batch_size,
-    'learning_rate': args.learning_rate,
-    'learning_rate_decay': args.learning_rate_decay,
-    'dropout': args.dropout_probability,
-    'training_lock': args.training_lock,
-    'model_name': args.model_name,
-    'train_data_dir': train_path,
-    'test_data_dir': test_path,
-})
+if args.path_to_settings is None:
+    # Make new settings
+    settings = Settings({
+        'conv_filters': [16, 64],
+        'conv_kernels': [5, 3],
+        'pooling_after_conv': [True, True],
+        'fc_hidden': [128, 128],
+        'height': args.height,
+        'width': args.width,
+        'channels': args.channels,
+        'batch_size': args.batch_size,
+        'learning_rate': args.learning_rate,
+        'learning_rate_decay': args.learning_rate_decay,
+        'dropout': args.dropout_probability,
+        'batch_norm': args.batch_norm,
+        'training_lock': args.training_lock,
+        'model_name': args.model_name,
+        'train_data_dir': train_path,
+        'test_data_dir': test_path
+    })
+else:
+    # Load settings
+    settings = Settings(None, restore_from_path=args.path_to_settings)
 
-# Load settings
-# settings = Settings(None, restore_from_path='./models/mnist-test/settings.txt')
+settings.assess(args)
 
 try:
-    # Continue train from loaded settings file
-    model.train(settings, n_epochs=args.epoch, restore_type='auto')
-
-    # Continue train from certain epoch out of the models save directory
-    # model.train(settings, n_epochs=args.epoch, restore_type='by_name', restore_data='epoch192')
-
-    # Load model from path and start train
-    # model.train(settings, n_epochs=args.epoch, restore_type='path', restore_data='./models/minimalistic-cnn/saves/epoch100.ckpt')
-
-    # Load only certain parts of model given by path and start train. Loaded parts will be locked for train (--lock)
-    # model.train(settings, n_epochs=args.epoch, restore_type='transfer', restore_data='./models/deep-cnn/saves/epoch119.ckpt')
+    # Start training
+    model.train(settings, n_epochs=args.epoch, restore_type=args.restore_type, restore_data=args.restore_data)
 except KeyboardInterrupt:
     print('exiting..')

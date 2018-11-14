@@ -27,7 +27,13 @@ def model(x, y, dropout_probability, settings):
     print('input: ' + str(temp_width) + ' x ' + str(temp_height) + ' x  1')
 
     with tf.variable_scope('cnn'):
+
         for i in range(len(conv_filters)):
+
+            if settings.get_setting_by_name('batch_norm'):
+                tensor = tf.layers.batch_normalization(tensor)
+                print('batch norm')
+
             tensor = tf.layers.conv2d(tensor, conv_filters[i], kernel_sizes[i], padding='SAME', activation=tf.nn.relu,
                                       kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                       bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False), trainable=('cnn' not in training_lock))
@@ -95,9 +101,12 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
     learning_rate = tf.train.exponential_decay(learning_rate=settings.get_setting_by_name('learning_rate'),
                                                global_step=global_step, decay_steps=data_manager.batches_per_epoch(),
                                                decay_rate=settings.get_setting_by_name('learning_rate_decay'))
-    print(data_manager.batches_per_epoch())
 
-    with tf.name_scope('opt'):
+    # extra operations for batch norm
+    extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
+    # make dependency for train step
+    with tf.control_dependencies(extra_update_ops):
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss, global_step=global_step)
 
     tf.summary.scalar("cost", loss)

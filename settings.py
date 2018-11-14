@@ -1,4 +1,5 @@
 import os
+import sys
 
 
 class Settings:
@@ -126,6 +127,42 @@ class Settings:
         """
         for setting in self.settings:
             print(setting)
+
+    def assess(self, args):
+        """
+        Asses settings.
+        If inconsistency is found, a warning is given.
+        In severe cases, the execution is aborted.
+        :param args: given arguments
+        :return: void
+        """
+        if args.restore_type == 'transfer' and self.get_setting_by_name('training_lock') == 'none':
+            print('WARNING: Transfer learning attempted, but no part of old model is locked!')
+            input('press any key to continue...')
+        if args.dataset_name == 'mnist' and args.channels != 1:
+            print('WARNING: mnist data has only one channel, but --channels was parsed as ', args.channels)
+        if self.get_setting_by_name('width') * self.get_setting_by_name('height') * self.get_setting_by_name('batch_size') * 32 > 1073741824 * 4:
+            print('WARNING: A single Batch exceeds 4GB of memory.')
+            input('press any key to continue...')
+        if len(self.get_setting_by_name('conv_filters')) != len(self.get_setting_by_name('conv_kernels')) \
+                or len(self.get_setting_by_name('conv_kernels')) != len(self.get_setting_by_name('pooling_after_conv')):
+            print('WARNING: cnn settings are inconsistent! conv_kernels, conv_filters and pooling_after_conv must be same length!')
+            print('Aborting.')
+            sys.exit(0)
+        for i in range(len(self.get_setting_by_name('pooling_after_conv'))):
+            width = self.get_setting_by_name('width')
+            height = self.get_setting_by_name('height')
+            if self.get_setting_by_name('pooling_after_conv')[i]:
+                if width % 2 == 0 and height % 2 == 0:
+                    width /= 2
+                    height /= 2
+                else:
+                    print("WARNING: Pooling operations divide width or height unevenly.")
+                    print('Abort.')
+                    sys.exit(0)
+        if self.get_setting_by_name('learning_rate_decay') < 0.9:
+            print('WARNING: learning rate decay is very low (Decay is exponential!)')
+            input('press any key to continue...')
 
 
 class SettingsItem:
