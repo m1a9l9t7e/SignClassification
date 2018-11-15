@@ -11,7 +11,7 @@ class DataManager:
     This class reads and augments the data and ultimately provides
     train and test data to a model in batch-sized portions.
     """
-    def __init__(self, settings, selection_mod=1):
+    def __init__(self, settings):
         self.height = settings.get_setting_by_name('height')
         self.width = settings.get_setting_by_name('width')
         self.batch_size = settings.get_setting_by_name('batch_size')

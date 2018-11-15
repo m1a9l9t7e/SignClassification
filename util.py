@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import csv
 import zipfile
@@ -17,7 +18,7 @@ def arrange_data_into_class_folders(src_dir, out_dir, path_to_annotations):
     :param path_to_annotations: path to annotation file (assigning classes to images)
     """
     if not os.path.exists(src_dir):
-        print('src dir does not exist!')
+        print('ERROR: src dir does not exist!')
         sys.exit(0)
 
     if not os.path.exists(out_dir):
@@ -38,7 +39,7 @@ def arrange_data_into_class_folders(src_dir, out_dir, path_to_annotations):
                     if 'name' in row[i] or 'Name' in row[i]:
                         name_index = i
                 if class_index == -1 or name_index == -1 or class_index == name_index:
-                    print('need help determining name and class index/position :/')
+                    print('ERROR: need help determining name and class position')
                     sys.exit(0)
                 line_count += 1
             else:
@@ -62,69 +63,157 @@ def get_necessary_data(dataset_name, data_dir):
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     if not os.path.exists(data_dir + os.sep + dataset_name):
-        print('downloading..')
+        print('Downloading..')
         if dataset_name == 'isf':
             download_file_from_google_drive('1Xvw7w3XKNLPWwfCZMKordtS7c-sIc_cs', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'gtsrb':
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':
             download_file_from_google_drive('1I5J1OZPti20w8zFGYsBqbyaiN7X8z4iB', data_dir + os.sep + 'data.zip')
-        print('unzipping..')
+        print('Unzipping..')
         zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
         zip_ref.extractall(data_dir)
         zip_ref.close()
-        print('deleting zip..')
+        print('Deleting zip..')
         os.remove(data_dir + os.sep + 'data.zip')
     return data_dir + os.sep + dataset_name + os.sep + 'train', data_dir + os.sep + dataset_name + os.sep + 'test'
 
 
-def augment_data(scalar, data_dir, output_dir='auto', balance='False'):
+def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance='False'):
     """
-    Augments images of a given dataset via various operations,
+    Augments images of a dataset (given by index file) via various operations,
     including: rotation, shearing, brightness and distortion or a any combination of those.
     :param scalar: scalar determining the ammount of generated images
                    based on the number of currently present images.
-    :param data_dir: the directory including the folder for each class which in turn contain the images to be augmented
+    :param path_to_data: the directory including the folder for each class which in turn contain the images to be augmented
     :param output_dir: the directory to which the augmented images will be written.
                        The class structure via folders will be preserved.
                        If output_dir == 'auto', the augmented images will be added to the current structure.
     :param balance: whether the dataset should be balanced automatically, so that each class has the same amount of samples.
     """
-    print('augmenting data..')
-    distribution = []
-    dirs = []
-    subdirs = list(os.walk(data_dir))[0][1]
-    for i in range(len(subdirs)):
-        path = os.path.join(data_dir, subdirs[i])
-        list_dir = os.listdir(path)
-        counter = 0
-        for image in list_dir:
-            if '.csv' in image:
-                os.remove(os.path.join(path, image))
-            else:
-                counter += 1
+    print('Augmenting data..')
+    # move original images to temporary folder with help of index file
+    file = open(path_to_index, 'r')
+    paths_to_orig_images = file.readlines()
+    path_to_moved_data = '.'+os.sep+'temp'
+    moved_paths = move_files(path_to_data, path_to_moved_data, paths_to_orig_images, root=os.path.abspath(path_to_data))
 
-        distribution.append(counter)
+    # count original images
+    moved_subdirs = list(os.walk(path_to_moved_data))[0][1]
+    original_distribution = []
+    moved_dirs = []
+    for i in range(len(moved_subdirs)):
+        moved_path = os.path.join(path_to_moved_data, moved_subdirs[i])
+        list_dir = os.listdir(moved_path)
+        original_distribution.append(len(list_dir))
+        moved_dirs.append(moved_path)
+
+    # count artificially added images
+    subdirs = list(os.walk(path_to_data))[0][1]
+    artificial_distribution = []
+    dirs = []
+    for i in range(len(moved_subdirs)):
+        path = os.path.join(path_to_data, subdirs[i])
+        list_dir = os.listdir(path)
+        artificial_distribution.append(len(list_dir))
         dirs.append(path)
 
-    max_samples = max(distribution)
+    max_samples = max(original_distribution)
+    min_samples = min(original_distribution)
+    new_samples_counter = 0
 
     for i in range(len(dirs)):
+        moved_path = moved_dirs[i]
         path = dirs[i]
-        pipeline = Augmentor.Pipeline(path, output_directory=(os.path.abspath(path) if output_dir == 'auto' else output_dir))
-        pipeline.random_brightness(probability=0.5, min_factor=0.5, max_factor=1.5)
-        pipeline.random_distortion(probability=0.1, grid_width=4, grid_height=4, magnitude=4)
-        pipeline.rotate(probability=0.1, max_left_rotation=10, max_right_rotation=10)
-        pipeline.shear(probability=0.1, max_shear_left=15, max_shear_right=15)
 
         if balance:
-            try:
-                pipeline.sample(int(max_samples * scalar - distribution[i]))
-            except Exception as e:
-                print(e)
-                print(path)
+            if min_samples * scalar < max_samples:
+                samples = max_samples - artificial_distribution[i] - original_distribution[i]
+            else:
+                samples = min_samples * scalar - artificial_distribution[i] - original_distribution[i]
         else:
-            pipeline.sample(int(distribution[i] * scalar))
+            samples = original_distribution[i] * scalar - original_distribution[i] - artificial_distribution[i]
+
+        if samples > 0:
+            # setup pipeline
+            pipeline = Augmentor.Pipeline(os.path.abspath(moved_path), output_directory=(os.path.abspath(path) if output_dir == 'auto' else output_dir))
+            pipeline.random_brightness(probability=0.5, min_factor=0.5, max_factor=1.5)
+            pipeline.random_distortion(probability=0.1, grid_width=4, grid_height=4, magnitude=4)
+            pipeline.rotate(probability=0.1, max_left_rotation=10, max_right_rotation=10)
+            pipeline.shear(probability=0.1, max_shear_left=15, max_shear_right=15)
+            pipeline.sample(int(samples))
+            new_samples_counter += samples
+
+    if new_samples_counter == 0:
+        print('NOTICE: Data has already been augmented. Choose higher scalar for further augmentation')
+    else:
+        print('\nData successfully augmented with ', new_samples_counter, ' new samples.')
+    move_files(path_to_moved_data, path_to_data, moved_paths, root=os.path.abspath(path_to_moved_data), delete_src=True)
+
+
+def get_index(path_to_data):
+    """
+    Return path to index file of data directory.
+    If no such file exists, one will be created at 'path_to_data/index.txt'
+    This is done to enhance augmentation, e.g., ensure that only original
+    images are used for augmentation, when applying augmentation multiple times.
+    :param path_to_data: path to data to be indexed.
+    :return: the path the index file
+    """
+    index_file_path = path_to_data + os.sep + 'index.txt'
+    if not os.path.exists(index_file_path):  # TODO: actually search for index file in all folders
+        print('No index file found for data set. Creating new index file..')
+        lines = []
+        subdirs = list(os.walk(path_to_data))[0][1]
+        for i in range(len(subdirs)):
+            path = os.path.join(path_to_data, subdirs[i])
+            list_dir = os.listdir(path)
+            for image in list_dir:
+                if '.csv' in image:
+                    os.remove(os.path.join(path, image))
+                else:
+                    path_to_img = os.path.join(path, image)
+                    lines.append(str(os.path.abspath(path_to_img))+os.linesep)
+
+        index_file_path = path_to_data + os.sep + 'index.txt'
+        file = open(index_file_path, 'w')
+        file.writelines(lines)
+        file.close()
+        # print('Index file created at ', index_file_path)
+    return index_file_path
+
+
+def move_files(src, dst, filenames, root='working_dir', delete_src=False):
+    """
+    This method moves specified files from one directory to another.
+    WARNING: only works if src and dst are both (sub)+directories of the working directory!
+    :param src: Source directory
+    :param dst: New directory. Will be created if it doesn't exist yet.
+    :param filenames: List of files given by their ABSOLUTE path.
+    :param root: The root from whereon the directory will be copied to the dst folder
+    :param delete_src: If this argument is True, the src directory will be deleted after the move is completed.
+    :return: A list of paths to the new locations of the files
+    """
+    new_filenames = []
+    for path in filenames:
+        path = path.strip(os.linesep)
+        sub_path = path.split(os.getcwd() if root == 'working_dir' else root)[1]
+        new_file_path = dst + sub_path
+        new_filenames.append(os.path.abspath(new_file_path))
+        new_file_directory = new_file_path[:-(len(new_file_path.split(os.sep)[len(new_file_path.split(os.sep))-1]) + 1)]
+        if not os.path.exists(new_file_directory):
+            os.makedirs(new_file_directory)
+        try:
+            shutil.move(path, new_file_path)
+        except:
+            print('ERROR: index file doesn\'t match data! Delete index file or re-download dataset.')
+            print('Aborting.')
+            sys.exit(0)
+
+    if delete_src:
+        shutil.rmtree(src)
+
+    return new_filenames
 
 
 def download_file_from_google_drive(id, destination):
@@ -163,10 +252,10 @@ def save_response_content(response, destination):
                 f.write(chunk)
 
 
-def convert_ppm_to_png(data_dir):
-    subdirs = list(os.walk(data_dir))[0][1]
+def convert_ppm_to_png(path_to_data):
+    subdirs = list(os.walk(path_to_data))[0][1]
     for i in range(len(subdirs)):
-        path = os.path.join(data_dir, subdirs[i])
+        path = os.path.join(path_to_data, subdirs[i])
         list_dir = os.listdir(path)
         for image in list_dir:
             if '.csv' in image:
@@ -178,10 +267,10 @@ def convert_ppm_to_png(data_dir):
                 os.remove(path_to_img)
 
 
-def change_image_mode_to_rgb(data_dir):
-    subdirs = list(os.walk(data_dir))[0][1]
+def change_image_mode_to_rgb(path_to_data):
+    subdirs = list(os.walk(path_to_data))[0][1]
     for i in range(len(subdirs)):
-        path = os.path.join(data_dir, subdirs[i])
+        path = os.path.join(path_to_data, subdirs[i])
         list_dir = os.listdir(path)
         for image in list_dir:
             if '.csv' in image:

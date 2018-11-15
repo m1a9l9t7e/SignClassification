@@ -53,7 +53,7 @@ class Settings:
             # self.load(settings_path)
             # TODO check if self.settings and settings_copy equal, if not overwrite
             # return
-            print('overwriting existing settings...')
+            print('Overwriting existing settings...')
 
         settings_print = []
         for settings_item in self.settings:
@@ -64,7 +64,7 @@ class Settings:
         file = open(settings_path, 'w')
         file.writelines(settings_print)
         file.close()
-        print('settings saved at ' + settings_path)
+        print('Settings saved at ' + settings_path)
         self.settings_path = settings_path
 
     def load(self, path):
@@ -83,7 +83,7 @@ class Settings:
             settings_item = SettingsItem(line[0], line[2], line[1], is_list=is_list, read=True)
             self.settings.append(settings_item)
 
-        print('settings restored.')
+        print('Settings restored.')
 
     def update(self, arg_dict):
         """
@@ -174,7 +174,7 @@ class SettingsItem:
     def __init__(self, name, type, value, is_list=False, read=False):
         self.name = name
         if type not in {'int', 'str', 'bool', 'float'}:
-            print('type ', type, ' of settings item ', name, ' not understood. Assuming string...')
+            print('Type ', type, ' of settings item ', name, ' not understood. Assuming string...')
             type = 'str'
         self.type = type
         self.is_list = is_list

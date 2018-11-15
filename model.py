@@ -4,7 +4,7 @@ import tensorflow as tf
 from data import DataManager
 
 
-def model(x, y, dropout_probability, settings):
+def model(x, y, dropout_probability, is_training, settings):
     """
     This method builds the classification model
     :param x: The input to be processed by the classifier. Expected to be of size [None, settings.height * settings.width]
@@ -13,7 +13,7 @@ def model(x, y, dropout_probability, settings):
     :param settings: The settings determining the construction of the model.
     :return: The output produced by the model as well as the loss.
     """
-    print('build model:')
+    print('Building model:')
     conv_filters = settings.get_setting_by_name('conv_filters')
     pooling_after_conv = settings.get_setting_by_name('pooling_after_conv')
     kernel_sizes = settings.get_setting_by_name('conv_kernels')
@@ -31,7 +31,7 @@ def model(x, y, dropout_probability, settings):
         for i in range(len(conv_filters)):
 
             if settings.get_setting_by_name('batch_norm'):
-                tensor = tf.layers.batch_normalization(tensor)
+                tensor = tf.layers.batch_normalization(tensor, training=is_training, center=True, scale=True)
                 print('batch norm')
 
             tensor = tf.layers.conv2d(tensor, conv_filters[i], kernel_sizes[i], padding='SAME', activation=tf.nn.relu,
@@ -74,14 +74,14 @@ def model(x, y, dropout_probability, settings):
     return output, loss
 
 
-def train(settings, n_epochs=401, restore_type='', restore_data=''):
+def train(settings, n_epochs=400, restore_type='', restore_data=''):
     """
     Train a model.
     While the model keeps improving it will be saved to disk.
     Once a model has been saved it can be retrieved in various ways given through restore_type and restore_data.
 
     :param settings: the settings providing all the necessary information for building the model and gathering the input data.
-    :param n_epochs: the number of epochs for which the model will be trained. One epoch utilizes all train material exactly once.
+    :param n_epochs: the number of epochs for which the model will be trained. One epoch utilizes all training material exactly once.
     :param restore_type: restore model and continue train. Either
                         'auto': for automatic continuation
                         'path': for reading save from path given in restore_data
@@ -89,13 +89,18 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                         'transfer': restores only the convolutional layers and retrains the dense layers, restores from path given in restore_data
     :param restore_data: depending on the restore type, restore data must provide the according information - either the name or path of a saved model
     """
+    # np.random.seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
+    # tf.set_random_seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
+
     data_manager = DataManager(settings)
 
     x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width') * settings.get_setting_by_name('height') * settings.get_setting_by_name('channels')])
     y = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('num_classes')])
-    dropout_probability = tf.placeholder_with_default(1.0, shape=())
 
-    prediction, loss = model(x, y, dropout_probability, settings)
+    dropout_probability = tf.placeholder_with_default(1.0, shape=())
+    is_training = tf.placeholder_with_default(False, shape=())
+
+    prediction, loss = model(x, y, dropout_probability, is_training, settings)
 
     global_step = tf.Variable(0, trainable=False)
     learning_rate = tf.train.exponential_decay(learning_rate=settings.get_setting_by_name('learning_rate'),
@@ -122,13 +127,13 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
         # writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph()) # TODO writer
         if (restore_type == 'auto' or restore_type == 'AUTO') and settings.get_setting_by_name('model_save_path') is not None:
             saver.restore(sess, settings.get_setting_by_name('model_save_path'))
-            print('model restored from ', settings.get_setting_by_name('model_save_path'))
+            print('Model restored from ', settings.get_setting_by_name('model_save_path'))
         elif restore_type == 'by_name':
             saver.restore(sess, settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_data) + '.ckpt')
-            print('model restored from ' + settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_data) + '.ckpt')
+            print('Model restored from ' + settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_data) + '.ckpt')
         elif restore_type == 'path':
             saver.restore(sess, restore_data)
-            print('model restored from ', restore_data)
+            print('Model restored from ', restore_data)
         elif restore_type == 'transfer':
             training_lock = settings.get_setting_by_name('training_lock')
             if 'cnn' in training_lock:
@@ -154,12 +159,10 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
             # ===== TRAIN =====
             while len(batch_x) != 0:
                 _prediction, _, c, summary = sess.run([prediction, optimizer, loss, merged_summary_op],
-                                                      feed_dict={x: batch_x, y:batch_y, dropout_probability: settings.get_setting_by_name('dropout')})
+                                                      feed_dict={x: batch_x, y:batch_y, is_training: True, dropout_probability: settings.get_setting_by_name('dropout')})
                 loss_sum += c
                 counter += 1
-                # writer.add_summary(summary, epoch * n_batches + i) # TODO writer
                 for i in range(np.shape(batch_y)[0]):
-                    # print(batch_y[i], ' ', _prediction[i])
                     if np.argmax(batch_y[i]) == np.argmax(_prediction[i]):
                         correct += 1
                     else:
@@ -207,9 +210,8 @@ def train(settings, n_epochs=401, restore_type='', restore_data=''):
                 save_path = save_dir + os.sep + 'epoch' + str(epoch) + '.ckpt'
                 saver.save(sess, save_path)
                 settings.update({'model_save_path': save_path})
-                print('model saved at ', save_path)
+                print('Model saved at ', save_path)
                 last_save_counter = 0
 
         print('Optimization Finished')
-        saver.save(sess, "saves/model-final.ckpt")
         sess.close()

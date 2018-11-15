@@ -11,14 +11,14 @@ import warnings
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--epoch', dest='epoch', type=int, default=2000)
-parser.add_argument('--batch_size', dest='batch_size', type=int, default=500)
+parser.add_argument('--epoch', dest='epoch', type=int, default=400)
+parser.add_argument('--batch_size', dest='batch_size', type=int, default=100)
 parser.add_argument('--height', dest='height', type=int, default=32)
 parser.add_argument('--width', dest='width', type=int, default=32)
 parser.add_argument('--channels', dest='channels', type=int, default=1)
 parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001)
 parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, default=0.99)
-parser.add_argument('--dropout', dest='dropout_probability', type=float, default=0.8)
+parser.add_argument('--dropout', dest='dropout_probability', type=float, default=1.0)
 parser.add_argument('--batch_norm', dest='batch_norm', type=bool, default=False)
 parser.add_argument('--model', dest='model_name', default=datetime.datetime.now().strftime("%I_%M%p_on_%B_%d,_%Y"))
 parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['gtsrb', 'isf', 'mnist'])
@@ -26,14 +26,14 @@ parser.add_argument('--augment', dest='augment_dataset', type=bool, default=Fals
 parser.add_argument('--restore', dest='restore_type', default='auto', choices=['auto', 'by_name', 'path', 'transfer'])
 parser.add_argument('--restore_data', dest='restore_data', default='')
 parser.add_argument('--lock', dest='training_lock', type=str, default='none', choices=['none', 'cnn', 'dnn', 'cnn-dnn'])
+parser.add_argument('--seed', dest='seed', type=int, default=0)
 parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
 
 args = parser.parse_args()
 train_path, test_path = util.get_necessary_data(args.dataset_name, '.' + os.sep + 'data')
 
 if args.augment_dataset:
-    # Augment training set
-    util.augment_data(scalar=2, data_dir=train_path, balance=False)
+    util.augment_data(scalar=2.5, path_to_data=train_path, path_to_index=util.get_index(train_path), balance=False)
 
 if args.path_to_settings is None:
     # Make new settings
