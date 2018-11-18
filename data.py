@@ -14,11 +14,12 @@ class DataManager:
     def __init__(self, settings):
         self.height = settings.get_setting_by_name('height')
         self.width = settings.get_setting_by_name('width')
+        self.channels = settings.get_setting_by_name('channels')
         self.batch_size = settings.get_setting_by_name('batch_size')
         print('reading train data:')
-        self.train_images, self.labels, num_classes_train = self.read(settings.get_setting_by_name('train_data_dir'), settings.get_setting_by_name('channels'))
+        self.train_images, self.labels, num_classes_train = self.read(settings.get_setting_by_name('train_data_dir'))
         print('reading test data:')
-        self.test_images, self.test_labels, num_classes_test = self.read(settings.get_setting_by_name('test_data_dir'), settings.get_setting_by_name('channels'))
+        self.test_images, self.test_labels, num_classes_test = self.read(settings.get_setting_by_name('test_data_dir'))
         self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size)
         self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size)
         if num_classes_train != num_classes_test:
@@ -27,18 +28,18 @@ class DataManager:
         else:
             settings.update({'num_classes': num_classes_train})
 
-    def image_conversion(self, image, channels):
+    def image_conversion(self, image):
         """
         Converts image to grayscale and resizes according to settings.
         :param image: the image to be converted.
         :return: the converted image as numpy array.
         """
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if channels == 1 else image
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if self.channels == 1 else image
         image = cv2.resize(image, (self.height, self.width))
         image = np.ndarray.astype(image, np.float32)
         return image
 
-    def read(self, data_dir, channels, print_distribution=True):
+    def read(self, data_dir, print_distribution=True):
         """
         Reads all images from subdirectories and creates corresponding labels.
         Optionally, a sample distribution over the classes will be printed.
@@ -63,7 +64,7 @@ class DataManager:
                 image = cv2.imread(os.path.join(path, image))
                 if len(np.shape(image)) < 3:
                     image = np.expand_dims(image, 2)
-                images.append(self.image_conversion(image, channels))
+                images.append(self.image_conversion(image))
                 label = np.zeros(len(subdirs), np.float32)
                 label[i] = 1.0
                 labels.append(label)
@@ -80,7 +81,7 @@ class DataManager:
         print(np.shape(images))
         images = np.array(images)
         labels = np.array(labels)
-        images = np.reshape(images, [images.shape[0], images.shape[1] * images.shape[2] * channels])
+        images = np.reshape(images, [images.shape[0], images.shape[1] * images.shape[2] * self.channels])
         if len(images) < self.batch_size:
             print('fewer images than a single batch size available!')
             sys.exit()

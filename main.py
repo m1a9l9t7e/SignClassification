@@ -19,12 +19,12 @@ parser.add_argument('--channels', dest='channels', type=int, default=1)
 parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001)
 parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, default=0.99)
 parser.add_argument('--dropout', dest='dropout_probability', type=float, default=1.0)
-parser.add_argument('--batch_norm', dest='batch_norm', type=bool, default=False)
+parser.add_argument('--batch_norm', dest='batch_norm', type=bool, default=False, choices=[True, False])
 parser.add_argument('--model', dest='model_name', default=datetime.datetime.now().strftime("%I_%M%p_on_%B_%d,_%Y"))
 parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['gtsrb', 'isf', 'mnist'])
 parser.add_argument('--augment', dest='augment_dataset', type=bool, default=False, choices=[True, False])
 parser.add_argument('--restore', dest='restore_type', default='auto', choices=['auto', 'by_name', 'path', 'transfer'])
-parser.add_argument('--restore_data', dest='restore_data', default='')
+parser.add_argument('--restore_argument', dest='restore_argument', default='')
 parser.add_argument('--lock', dest='training_lock', type=str, default='none', choices=['none', 'cnn', 'dnn', 'cnn-dnn'])
 parser.add_argument('--seed', dest='seed', type=int, default=0)
 parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
@@ -63,6 +63,6 @@ settings.assess(args)
 
 try:
     # Start training
-    model.train(settings, n_epochs=args.epoch, restore_type=args.restore_type, restore_data=args.restore_data)
+    model.train(settings, n_epochs=args.epoch, restore_type=args.restore_type, restore_argument=args.restore_argument)
 except KeyboardInterrupt:
     print('exiting..')

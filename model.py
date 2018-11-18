@@ -7,9 +7,10 @@ from data import DataManager
 def model(x, y, dropout_probability, is_training, settings):
     """
     This method builds the classification model
-    :param x: The input to be processed by the classifier. Expected to be of size [None, settings.height * settings.width]
+    :param x: The input to be processed by the classifier. Expected to be of size [None, image_height, image_width, image_channels]
     :param y: The label corresponding to input x
     :param dropout_probability: placeholder for dropout probability so that it can be utilized dynamically
+    :param is_training:  A tensor containing a single boolean. Currently used for batch normalization
     :param settings: The settings determining the construction of the model.
     :return: The output produced by the model as well as the loss.
     """
@@ -18,13 +19,13 @@ def model(x, y, dropout_probability, is_training, settings):
     pooling_after_conv = settings.get_setting_by_name('pooling_after_conv')
     kernel_sizes = settings.get_setting_by_name('conv_kernels')
     fc_hidden_units = settings.get_setting_by_name('fc_hidden')
-    tensor = tf.reshape(x, shape=[-1, settings.get_setting_by_name('height'), settings.get_setting_by_name('width'), settings.get_setting_by_name('channels')])
+    training_lock = settings.get_setting_by_name('training_lock')
     temp_width = settings.get_setting_by_name('width')
     temp_height = settings.get_setting_by_name('height')
-    training_lock = settings.get_setting_by_name('training_lock')
-    temp_filters = 1
+    temp_channels = settings.get_setting_by_name('channels')
+    tensor = tf.reshape(x, [temp_height, temp_width, temp_channels])
 
-    print('input: ' + str(temp_width) + ' x ' + str(temp_height) + ' x  1')
+    print('input: ' + str(temp_width) + ' x ' + str(temp_height) + ' x  '+str(temp_channels))
 
     with tf.variable_scope('cnn'):
 
@@ -37,7 +38,7 @@ def model(x, y, dropout_probability, is_training, settings):
             tensor = tf.layers.conv2d(tensor, conv_filters[i], kernel_sizes[i], padding='SAME', activation=tf.nn.relu,
                                       kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                       bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False), trainable=('cnn' not in training_lock))
-            temp_filters = conv_filters[i]
+            temp_channels = conv_filters[i]
             description = 'conv: ' + str(temp_width) + ' x ' + str(temp_height) + ' x ' + str(conv_filters[i])
             if 'cnn' in training_lock:
                 description += ' locked!'
@@ -46,10 +47,10 @@ def model(x, y, dropout_probability, is_training, settings):
                 tensor = tf.nn.max_pool(tensor, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
                 temp_height = int(temp_height / 2)
                 temp_width = int(temp_width / 2)
-                print('pool: ' + str(temp_width) + ' x ' + str(temp_height) + ' x ' + str(conv_filters[i]))
+                print('pool: ' + str(temp_width) + ' x ' + str(temp_height) + ' x ' + str(temp_channels))
 
-    tensor = tf.reshape(tensor, shape=[-1, temp_height * temp_width * temp_filters])
-    print('resize: ' + str(temp_width) + '*' + str(temp_height) + '*' + str(temp_filters))
+    tensor = tf.reshape(tensor, shape=[-1, temp_height * temp_width * temp_channels])
+    print('resize: ' + str(temp_width) + '*' + str(temp_height) + '*' + str(temp_channels))
 
     with tf.variable_scope('dnn'):
         for i in range(len(fc_hidden_units)):
@@ -66,7 +67,7 @@ def model(x, y, dropout_probability, is_training, settings):
         output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'), activation=tf.nn.softmax,
                                  kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                  bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
-        print('out: ' + str(settings.get_setting_by_name('num_classes')))
+        print('output: ' + str(settings.get_setting_by_name('num_classes')))
 
     with tf.variable_scope('loss'):
         loss = tf.reduce_mean(tf.square(tf.subtract(output, y)))
@@ -74,20 +75,20 @@ def model(x, y, dropout_probability, is_training, settings):
     return output, loss
 
 
-def train(settings, n_epochs=400, restore_type='', restore_data=''):
+def train(settings, n_epochs=400, restore_type='', restore_argument=''):
     """
     Train a model.
     While the model keeps improving it will be saved to disk.
-    Once a model has been saved it can be retrieved in various ways given through restore_type and restore_data.
+    Once a model has been saved it can be retrieved in various ways given through restore_type and restore_argument.
 
     :param settings: the settings providing all the necessary information for building the model and gathering the input data.
     :param n_epochs: the number of epochs for which the model will be trained. One epoch utilizes all training material exactly once.
     :param restore_type: restore model and continue train. Either
                         'auto': for automatic continuation
-                        'path': for reading save from path given in restore_data
-                        'by_name': for restoring from save from settings.save_path dir with name restore_data
-                        'transfer': restores only the convolutional layers and retrains the dense layers, restores from path given in restore_data
-    :param restore_data: depending on the restore type, restore data must provide the according information - either the name or path of a saved model
+                        'path': for reading save from path given in restore_argument
+                        'by_name': for restoring from save from settings.save_path dir with name restore_argument
+                        'transfer': restores only the convolutional layers and retrains the dense layers, restores from path given in restore_argument
+    :param restore_argument: depending on the restore type, restore data must provide the according information - either the name or path of a saved model
     """
     # np.random.seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
     # tf.set_random_seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
@@ -129,21 +130,21 @@ def train(settings, n_epochs=400, restore_type='', restore_data=''):
             saver.restore(sess, settings.get_setting_by_name('model_save_path'))
             print('Model restored from ', settings.get_setting_by_name('model_save_path'))
         elif restore_type == 'by_name':
-            saver.restore(sess, settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_data) + '.ckpt')
-            print('Model restored from ' + settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_data) + '.ckpt')
+            saver.restore(sess, settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_argument) + '.ckpt')
+            print('Model restored from ' + settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_argument) + '.ckpt')
         elif restore_type == 'path':
-            saver.restore(sess, restore_data)
-            print('Model restored from ', restore_data)
+            saver.restore(sess, restore_argument)
+            print('Model restored from ', restore_argument)
         elif restore_type == 'transfer':
             training_lock = settings.get_setting_by_name('training_lock')
             if 'cnn' in training_lock:
                 cnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='cnn'))
-                cnn_saver.restore(sess, restore_data)
-                print('CNN restored from ', restore_data, ' and LOCKED!')
+                cnn_saver.restore(sess, restore_argument)
+                print('CNN restored from ', restore_argument, ' and LOCKED!')
             if 'dnn' in training_lock:
                 dnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='dnn'))
-                dnn_saver.restore(sess, restore_data)
-                print('DNN restored from ', restore_data, ' and LOCKED!')
+                dnn_saver.restore(sess, restore_argument)
+                print('DNN restored from ', restore_argument, ' and LOCKED!')
 
         min_cost = -1
         new_best = False
