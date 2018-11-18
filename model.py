@@ -23,7 +23,7 @@ def model(x, y, dropout_probability, is_training, settings):
     temp_width = settings.get_setting_by_name('width')
     temp_height = settings.get_setting_by_name('height')
     temp_channels = settings.get_setting_by_name('channels')
-    tensor = tf.reshape(x, [temp_height, temp_width, temp_channels])
+    tensor = tf.reshape(x, [-1, temp_height, temp_width, temp_channels])
 
     print('input: ' + str(temp_width) + ' x ' + str(temp_height) + ' x  '+str(temp_channels))
 
