@@ -36,7 +36,6 @@ class DataManager:
         """
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if self.channels == 1 else image
         image = cv2.resize(image, (self.height, self.width))
-        image = np.ndarray.astype(image, np.float32)
         return image
 
     def read(self, data_dir, print_distribution=True):
