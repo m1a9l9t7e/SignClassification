@@ -2,6 +2,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from data import DataManager
+from tensorflow.python.tools import freeze_graph
 
 
 def model(x, y, dropout_probability, is_training, settings):
@@ -64,9 +65,10 @@ def model(x, y, dropout_probability, is_training, settings):
             print(description)
 
     with tf.variable_scope('out'):
-        output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'), activation=tf.nn.softmax,
+        output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'),
                                  kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                  bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
+        output = tf.nn.softmax(output, name='output_softmax')
         print('output: ' + str(settings.get_setting_by_name('num_classes')))
 
     with tf.variable_scope('loss'):
@@ -95,7 +97,8 @@ def train(settings, n_epochs=400, restore_type='', restore_argument=''):
 
     data_manager = DataManager(settings)
 
-    x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width') * settings.get_setting_by_name('height') * settings.get_setting_by_name('channels')])
+    x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width') * settings.get_setting_by_name('height') * settings.get_setting_by_name('channels')],
+                       name='input_placeholder')
     y = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('num_classes')])
 
     dropout_probability = tf.placeholder_with_default(1.0, shape=())
@@ -213,6 +216,11 @@ def train(settings, n_epochs=400, restore_type='', restore_argument=''):
                 settings.update({'model_save_path': save_path})
                 print('Model saved at ', save_path)
                 last_save_counter = 0
+
+            freeze_graph.freeze_graph(input_graph=sess.graph_def, output_node_names='output', output_graph='frozen_graph.pb',
+                                      input_checkpoint='./models/isf/saves/epoch5.ckpt', input_saver = None, input_binary = True,
+                                      restore_op_name='save/restore_all', filename_tensor_name = None, clear_devices = True,
+                                      initializer_nodes=None)
 
         print('Optimization Finished')
         sess.close()

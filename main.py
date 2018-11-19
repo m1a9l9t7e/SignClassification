@@ -1,12 +1,11 @@
-import os
-import sys
-
-import model
-from settings import Settings
 import argparse
 import datetime
-import util
+import os
 import warnings
+
+import model
+import util
+from settings import Settings
 
 warnings.filterwarnings("ignore")
 
@@ -38,9 +37,9 @@ if args.augment_dataset:
 if args.path_to_settings is None:
     # Make new settings
     settings = Settings({
-        'conv_filters': [16, 64],
-        'conv_kernels': [5, 3],
-        'pooling_after_conv': [True, True],
+        'conv_filters': [16, 32, 32],
+        'conv_kernels': [5, 3, 2],
+        'pooling_after_conv': [True, True, True],
         'fc_hidden': [128, 128],
         'height': args.height,
         'width': args.width,
