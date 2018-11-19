@@ -120,7 +120,7 @@ def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance
 
     max_samples = max(original_distribution)
     min_samples = min(original_distribution)
-    new_samples_counter = 0
+    samples_counter = 0
 
     for i in range(len(dirs)):
         moved_path = moved_dirs[i]
@@ -142,12 +142,25 @@ def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance
             pipeline.rotate(probability=0.1, max_left_rotation=10, max_right_rotation=10)
             pipeline.shear(probability=0.1, max_shear_left=15, max_shear_right=15)
             pipeline.sample(int(samples))
-            new_samples_counter += samples
+            samples_counter += samples
+        elif samples < 0:
+            artificial_images = os.listdir(os.path.abspath(path))
+            print(artificial_images)
+            while samples < 0:
+                os.remove(os.path.join(os.path.abspath(path), artificial_images[0]))
+                if len(artificial_images) == 0:
+                    break
+                else:
+                    artificial_images = artificial_images[1:]
+                    samples += 1
+                    samples_counter -= 1
 
-    if new_samples_counter == 0:
-        print('NOTICE: Data has already been augmented. Choose higher scalar for further augmentation')
+    if samples_counter > 0:
+        print('\nData successfully augmented with ', samples_counter, ' new samples.')
+    elif samples_counter < 0:
+        print('\nArtifical data augmentation reduced to given scalar. A total of ', abs(samples_counter), ' samples have been deleted.')
     else:
-        print('\nData successfully augmented with ', new_samples_counter, ' new samples.')
+        print('NOTICE: Data has already been augmented. Choose higher scalar for further augmentation')
     move_files(path_to_moved_data, path_to_data, moved_paths, root=os.path.abspath(path_to_moved_data), delete_src=True)
 
 

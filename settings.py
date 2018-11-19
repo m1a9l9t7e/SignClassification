@@ -11,6 +11,8 @@ class Settings:
     separator = ';'
     logs_path = '.'+os.sep+'logs'+os.sep
     models_path = '.'+os.sep+'models'+os.sep
+    save_path_from_model_root = os.sep+'saves'+os.sep
+    output_path_from_model_root = os.sep+'output'+os.sep
     settings = []
 
     def __init__(self, arg_dict, restore_from_path=None):
@@ -80,7 +82,10 @@ class Settings:
             line = line[:-1]
             line = line.split(self.separator)
             is_list = True if line[3] == 'True' else False
-            settings_item = SettingsItem(line[0], line[2], line[1], is_list=is_list, read=True)
+            if len(line[1]) == 0:
+                settings_item = SettingsItem(line[0], line[2], None, is_list=is_list, read=False)
+            else:
+                settings_item = SettingsItem(line[0], line[2], line[1], is_list=is_list, read=True)
             self.settings.append(settings_item)
 
         print('Settings restored.')
@@ -128,6 +133,12 @@ class Settings:
         for setting in self.settings:
             print(setting)
 
+    def get_save_path(self):
+        return self.models_path + self.get_setting_by_name('model_name') + self.save_path_from_model_root
+
+    def get_output_path(self):
+        return self.models_path + self.get_setting_by_name('model_name') + self.output_path_from_model_root
+
     def assess(self, args):
         """
         Asses settings.
@@ -163,6 +174,32 @@ class Settings:
         if self.get_setting_by_name('learning_rate_decay') < 0.9:
             print('WARNING: learning rate decay is very low (Decay is exponential!)')
             input('press any key to continue...')
+
+        if args.restore_type == 'auto' or args.restore_type == 'AUTO':
+            if self.get_setting_by_name('model_save_path') is not None:
+                input_checkpoint = self.get_setting_by_name('model_save_path')
+                print('Model restored from ', self.get_setting_by_name('model_save_path'))
+            else:
+                input_checkpoint = None
+        elif args.restore_type == 'by_name':
+            if not os.path.exists(self.get_save_path() + str(args.restore_argument) + '.ckpt'):
+                print('ERROR: no model with name ', args.restore_argument, ' found.')
+                print('Aborting.')
+                sys.exit(0)
+            input_checkpoint = self.get_save_path() + str(args.restore_argument) + '.ckpt'
+            print('Model restored from ' + self.get_save_path() + str(args.restore_argument) + '.ckpt')
+        elif args.restore_type == 'path' or args.restore_type == 'transfer':
+            if not os.path.exists(args.restore_argument):
+                print('ERROR: no model found at path: ', args.restore_argument)
+                print('Aborting.')
+                sys.exit(0)
+            input_checkpoint = args.restore_argument
+            print('Model restored from ', args.restore_argument)
+        else:
+            print('ERROR: invalid restore type chosen.')
+            print('Aborting.')
+            sys.exit(0)
+        self.update({'input_checkpoint': input_checkpoint})
 
 
 class SettingsItem:

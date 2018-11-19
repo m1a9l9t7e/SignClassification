@@ -1,3 +1,4 @@
+import cv2
 import os
 import numpy as np
 import tensorflow as tf
@@ -68,7 +69,7 @@ def model(x, y, dropout_probability, is_training, settings):
         output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'),
                                  kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                  bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
-        output = tf.nn.softmax(output, name='output_softmax')
+        output = tf.nn.softmax(output, name=settings.get_setting_by_name('output_node_name'))
         print('output: ' + str(settings.get_setting_by_name('num_classes')))
 
     with tf.variable_scope('loss'):
@@ -77,7 +78,7 @@ def model(x, y, dropout_probability, is_training, settings):
     return output, loss
 
 
-def train(settings, n_epochs=400, restore_type='', restore_argument=''):
+def train(settings, n_epochs=400, restore_type='', show_test=False):
     """
     Train a model.
     While the model keeps improving it will be saved to disk.
@@ -90,6 +91,7 @@ def train(settings, n_epochs=400, restore_type='', restore_argument=''):
                         'path': for reading save from path given in restore_argument
                         'by_name': for restoring from save from settings.save_path dir with name restore_argument
                         'transfer': restores only the convolutional layers and retrains the dense layers, restores from path given in restore_argument
+    :param show_test: show classified images
     :param restore_argument: depending on the restore type, restore data must provide the according information - either the name or path of a saved model
     """
     # np.random.seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
@@ -128,31 +130,24 @@ def train(settings, n_epochs=400, restore_type='', restore_argument=''):
     with tf.Session(config=config) as sess:
         saver = tf.train.Saver(max_to_keep=100)
         sess.run(tf.global_variables_initializer())
-        # writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph()) # TODO writer
-        if (restore_type == 'auto' or restore_type == 'AUTO') and settings.get_setting_by_name('model_save_path') is not None:
-            saver.restore(sess, settings.get_setting_by_name('model_save_path'))
-            print('Model restored from ', settings.get_setting_by_name('model_save_path'))
-        elif restore_type == 'by_name':
-            saver.restore(sess, settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_argument) + '.ckpt')
-            print('Model restored from ' + settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves' + os.sep + str(restore_argument) + '.ckpt')
-        elif restore_type == 'path':
-            saver.restore(sess, restore_argument)
-            print('Model restored from ', restore_argument)
-        elif restore_type == 'transfer':
-            training_lock = settings.get_setting_by_name('training_lock')
-            if 'cnn' in training_lock:
-                cnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='cnn'))
-                cnn_saver.restore(sess, restore_argument)
-                print('CNN restored from ', restore_argument, ' and LOCKED!')
-            if 'dnn' in training_lock:
-                dnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='dnn'))
-                dnn_saver.restore(sess, restore_argument)
-                print('DNN restored from ', restore_argument, ' and LOCKED!')
+        # writer = tf.summary.FileWriter(settings.logs_path, graph=tf.get_default_graph()) # TODO writer
+        if settings.get_setting_by_name('input_checkpoint') is not None:
+            if restore_type == 'transfer':
+                training_lock = settings.get_setting_by_name('training_lock')
+                if 'cnn' in training_lock:
+                    cnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='cnn'))
+                    cnn_saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
+                    print('CNN restored from ', settings.get_setting_by_name('input_checkpoint'), ' and LOCKED!')
+                if 'dnn' in training_lock:
+                    dnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='dnn'))
+                    dnn_saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
+                    print('DNN restored from ', settings.get_setting_by_name('input_checkpoint'), ' and LOCKED!')
+            else:
+                saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
 
         min_cost = -1
-        new_best = False
         no_improvement_counter = 0
-        last_save_counter = 0
+        max_accuracy = 0
         for epoch in range(n_epochs):
             loss_sum = 0
             counter = 0
@@ -172,7 +167,8 @@ def train(settings, n_epochs=400, restore_type='', restore_argument=''):
                     else:
                         wrong += 1
                 batch_x, batch_y = data_manager.next_batch()
-            train_accuracy = 'train accuracy: ' + str(round(100 * correct / (wrong + correct), 2))+'%'
+            train_accuracy = 100 * correct / (wrong + correct)
+            train_accuracy_print = 'train accuracy: ' + str(round(train_accuracy, 2))+'%'
             loss_avg = loss_sum  # / counter
 
             test_batch_x, test_batch_y = data_manager.next_test_batch()
@@ -185,42 +181,46 @@ def train(settings, n_epochs=400, restore_type='', restore_argument=''):
                 for i in range(np.shape(test_batch_y)[0]):
                     if np.argmax(test_batch_y[i]) == np.argmax(test_prediction[i]):
                         correct += 1
+                        if show_test and (epoch+1) % 10 == 0:
+                            cv2.imshow('correct', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
+                                                                              settings.get_setting_by_name('channels')]))
+                            cv2.waitKey(0)
                     else:
                         wrong += 1
+                        if show_test and (epoch+1) % 10 == 0:
+                            cv2.imshow('wrong', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
+                                                                            settings.get_setting_by_name('channels')]))
+                            cv2.waitKey(0)
                 test_batch_x, test_batch_y = data_manager.next_test_batch()
-            test_accuracy = 'test accuracy: ' + str(round(100*correct/(wrong+correct), 2))+'%'
+            test_accuracy = 100*correct/(wrong+correct)
+            test_accuracy_print = 'test accuracy: ' + str(round(test_accuracy, 2))+'%'
             train_info = 'Epoch '+str(epoch + 1)+' / '+str(n_epochs)+' cost: '+str(round(loss_avg, 3))
 
+            # === PRINT EVAL ===
             if min_cost > loss_sum or min_cost == -1:
                 min_cost = loss_sum
                 no_improvement_counter = 0
                 train_info += ' :)'
-                new_best = True
             else:
                 no_improvement_counter += 1
                 if no_improvement_counter > 12:
                     train_info += ' :('
-                    new_best = False
                 else:
                     train_info += ' :|'
 
-            print(train_info, ' ', train_accuracy, ' ', test_accuracy)
-            last_save_counter += 1
+            print(train_info, ' ', train_accuracy_print, ' ', test_accuracy_print)
 
-            if new_best and last_save_counter > 5:
-                save_dir = settings.models_path + settings.get_setting_by_name('model_name') + os.sep + 'saves'
+            # === SAVE IF IMPROVEMENT ===
+            if test_accuracy > max_accuracy:
+                max_accuracy = test_accuracy
+                save_dir = settings.get_save_path()
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
-                save_path = save_dir + os.sep + 'epoch' + str(epoch) + '.ckpt'
+                save_path = save_dir + 'epoch' + str(epoch) + '.ckpt'
                 saver.save(sess, save_path)
                 settings.update({'model_save_path': save_path})
                 print('Model saved at ', save_path)
-                last_save_counter = 0
-
-            freeze_graph.freeze_graph(input_graph=sess.graph_def, output_node_names='output', output_graph='frozen_graph.pb',
-                                      input_checkpoint='./models/isf/saves/epoch5.ckpt', input_saver = None, input_binary = True,
-                                      restore_op_name='save/restore_all', filename_tensor_name = None, clear_devices = True,
-                                      initializer_nodes=None)
 
         print('Optimization Finished')
+        settings.update({'input_checkpoint': settings.get_setting_by_name('model_save_path')})
         sess.close()
