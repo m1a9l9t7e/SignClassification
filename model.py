@@ -1,3 +1,5 @@
+import sys
+
 import cv2
 import os
 import numpy as np
@@ -27,7 +29,7 @@ def model(x, y, dropout_probability, is_training, settings):
     temp_channels = settings.get_setting_by_name('channels')
     tensor = tf.reshape(x, [-1, temp_height, temp_width, temp_channels])
 
-    print('input: ' + str(temp_width) + ' x ' + str(temp_height) + ' x  '+str(temp_channels))
+    print('input: ' + str(temp_width) + ' x ' + str(temp_height) + ' x  ' + str(temp_channels))
 
     with tf.variable_scope('cnn'):
 
@@ -65,12 +67,13 @@ def model(x, y, dropout_probability, is_training, settings):
                 description += ' locked!'
             print(description)
 
-    with tf.variable_scope('out'):
+    with tf.variable_scope('out-dnn'):
         output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'),
                                  kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                  bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
-        output = tf.nn.softmax(output, name=settings.get_setting_by_name('output_node_name'))
-        print('output: ' + str(settings.get_setting_by_name('num_classes')))
+
+    output = tf.nn.softmax(output, name=settings.get_setting_by_name('output_node_name'))
+    print('output: ' + str(settings.get_setting_by_name('num_classes')))
 
     with tf.variable_scope('loss'):
         loss = tf.reduce_mean(tf.square(tf.subtract(output, y)))
@@ -78,7 +81,7 @@ def model(x, y, dropout_probability, is_training, settings):
     return output, loss
 
 
-def train(settings, n_epochs=400, restore_type='', show_test=False):
+def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=False):
     """
     Train a model.
     While the model keeps improving it will be saved to disk.
@@ -96,11 +99,9 @@ def train(settings, n_epochs=400, restore_type='', show_test=False):
     """
     # np.random.seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
     # tf.set_random_seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
-
-    data_manager = DataManager(settings)
-
-    x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width') * settings.get_setting_by_name('height') * settings.get_setting_by_name('channels')],
-                       name='input_placeholder')
+    x = tf.placeholder(tf.float32, [None,
+                                    settings.get_setting_by_name('width') * settings.get_setting_by_name('height') * settings.get_setting_by_name('channels')],
+                       name=settings.get_setting_by_name('input_node_name'))
     y = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('num_classes')])
 
     dropout_probability = tf.placeholder_with_default(1.0, shape=())
@@ -130,7 +131,7 @@ def train(settings, n_epochs=400, restore_type='', show_test=False):
     with tf.Session(config=config) as sess:
         saver = tf.train.Saver(max_to_keep=100)
         sess.run(tf.global_variables_initializer())
-        # writer = tf.summary.FileWriter(settings.logs_path, graph=tf.get_default_graph()) # TODO writer
+        writer = tf.summary.FileWriter(settings.logs_path, graph=tf.get_default_graph())  # TODO writer
         if settings.get_setting_by_name('input_checkpoint') is not None:
             if restore_type == 'transfer':
                 training_lock = settings.get_setting_by_name('training_lock')
@@ -158,7 +159,8 @@ def train(settings, n_epochs=400, restore_type='', show_test=False):
             # ===== TRAIN =====
             while len(batch_x) != 0:
                 _prediction, _, c, summary = sess.run([prediction, optimizer, loss, merged_summary_op],
-                                                      feed_dict={x: batch_x, y:batch_y, is_training: True, dropout_probability: settings.get_setting_by_name('dropout')})
+                                                      feed_dict={x: batch_x, y: batch_y, is_training: True,
+                                                                 dropout_probability: settings.get_setting_by_name('dropout')})
                 loss_sum += c
                 counter += 1
                 for i in range(np.shape(batch_y)[0]):
@@ -168,7 +170,7 @@ def train(settings, n_epochs=400, restore_type='', show_test=False):
                         wrong += 1
                 batch_x, batch_y = data_manager.next_batch()
             train_accuracy = 100 * correct / (wrong + correct)
-            train_accuracy_print = 'train accuracy: ' + str(round(train_accuracy, 2))+'%'
+            train_accuracy_print = 'train accuracy: ' + str(round(train_accuracy, 2)) + '%'
             loss_avg = loss_sum  # / counter
 
             test_batch_x, test_batch_y = data_manager.next_test_batch()
@@ -181,20 +183,20 @@ def train(settings, n_epochs=400, restore_type='', show_test=False):
                 for i in range(np.shape(test_batch_y)[0]):
                     if np.argmax(test_batch_y[i]) == np.argmax(test_prediction[i]):
                         correct += 1
-                        if show_test and (epoch+1) % 10 == 0:
+                        if show_test and (epoch + 1) % 10 == 0:
                             cv2.imshow('correct', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
                                                                               settings.get_setting_by_name('channels')]))
                             cv2.waitKey(0)
                     else:
                         wrong += 1
-                        if show_test and (epoch+1) % 10 == 0:
+                        if show_test and (epoch + 1) % 10 == 0:
                             cv2.imshow('wrong', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
                                                                             settings.get_setting_by_name('channels')]))
                             cv2.waitKey(0)
                 test_batch_x, test_batch_y = data_manager.next_test_batch()
-            test_accuracy = 100*correct/(wrong+correct)
-            test_accuracy_print = 'test accuracy: ' + str(round(test_accuracy, 2))+'%'
-            train_info = 'Epoch '+str(epoch + 1)+' / '+str(n_epochs)+' cost: '+str(round(loss_avg, 3))
+            test_accuracy = 100 * correct / (wrong + correct)
+            test_accuracy_print = 'test accuracy: ' + str(round(test_accuracy, 2)) + '%'
+            train_info = 'Epoch ' + str(epoch + 1) + ' / ' + str(n_epochs) + ' cost: ' + str(round(loss_avg, 3))
 
             # === PRINT EVAL ===
             if min_cost > loss_sum or min_cost == -1:

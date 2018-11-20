@@ -1,6 +1,10 @@
+import cv2
 import os
 import sys
 import tensorflow as tf
+import numpy as np
+
+from data import DataManager
 
 
 def freeze_graph(settings, output_dir=None):
@@ -35,13 +39,73 @@ def freeze_graph(settings, output_dir=None):
         output_graph_def = tf.graph_util.convert_variables_to_constants(
             sess,  # The session is used to retrieve the weights
             tf.get_default_graph().as_graph_def(),  # The graph_def is used to retrieve the nodes
-            output_node_names.split(",")  # The output node names are used to select the usefull nodes
+            output_node_names.split(",")  # The output node names are used to select the useful nodes
         )
-
         # Serialize and dump the output graph to the filesystem
         with tf.gfile.GFile(output_filename, "wb") as f:
             f.write(output_graph_def.SerializeToString())
         print(len(output_graph_def.node), ' ops in the final graph')
         print('Frozen graph saved at ', output_filename)
+        settings.update({'frozen_model_save_path': os.path.abspath(output_filename)})
 
     return output_graph_def
+
+
+def load_graph(frozen_graph_filename):
+    print('Loading graph..')
+    # get graph definition
+    with tf.gfile.GFile(frozen_graph_filename, "rb") as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+
+    # load graph via graph definition. name='' is important!
+    with tf.Graph().as_default() as graph:
+        tf.import_graph_def(graph_def, name='')
+    return graph
+
+
+def execute_frozen_model(settings, data_manager):
+
+    graph = load_graph(settings.get_setting_by_name('frozen_model_save_path'))
+    output_node_name = settings.get_setting_by_name('output_node_name')
+    input_node_name = settings.get_setting_by_name('input_node_name')
+
+    input_node_in_graph = False
+    output_node_in_graph = False
+    graph_nodes = graph.get_operations()
+    print('input node name: ', graph_nodes[0].name)
+    print('output node name: ', graph_nodes[-1].name)
+
+    for op in graph.get_operations():
+        if op.name == input_node_name:
+            input_node_in_graph = True
+        if op.name == output_node_name:
+            output_node_in_graph = True
+    if not (input_node_in_graph and output_node_in_graph):
+        print('Input or output node specified in settings is not in graph!')
+        print('Abort.')
+        sys.exit(0)
+
+    x = graph.get_tensor_by_name(input_node_name+':0')
+    y = graph.get_tensor_by_name(output_node_name+':0')
+
+    print('Executing frozen model..')
+    with tf.Session(graph=graph) as sess:
+        # Note: we don't nee to initialize/restore anything as there are no Variables in this graph, only hardcoded constants
+        test_batch_x, test_batch_y = data_manager.next_test_batch()
+        predictions = sess.run(y, feed_dict={x: test_batch_x})
+
+        correct = 0
+        wrong = 0
+        for i in range(len(test_batch_y)):
+            if np.argmax(test_batch_y[i]) == np.argmax(predictions[i]):
+                correct += 1
+                cv2.imshow('correct', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
+                                                                  settings.get_setting_by_name('channels')]))
+                cv2.waitKey(0)
+            else:
+                wrong += 1
+                cv2.imshow('wrong', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
+                                                                settings.get_setting_by_name('channels')]))
+                cv2.waitKey(0)
+    print('Execution finished.')

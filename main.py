@@ -5,6 +5,7 @@ import os
 import model
 import util
 import tf_util
+from data import DataManager
 from settings import Settings
 
 warnings.filterwarnings("ignore")
@@ -28,6 +29,7 @@ parser.add_argument('--restore_argument', dest='restore_argument', default='')
 parser.add_argument('--lock', dest='training_lock', type=str, default='none', choices=['none', 'cnn', 'dnn', 'cnn-dnn'])
 parser.add_argument('--seed', dest='seed', type=int, default=0)
 parser.add_argument('--output_node_name', dest='output_node_name', type=str, default='output_soft')
+parser.add_argument('--input_node_name', dest='input_node_name', type=str, default='input_placeholder')
 parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
 
 args = parser.parse_args()
@@ -52,6 +54,7 @@ if args.path_to_settings is None:
         'batch_norm': args.batch_norm,
         'training_lock': args.training_lock,
         'model_name': args.model_name,
+        'input_node_name': args.input_node_name,
         'output_node_name': args.output_node_name,
         'train_data_dir': train_path,
         'test_data_dir': test_path
@@ -60,10 +63,12 @@ else:
     settings = Settings(None, restore_from_path=args.path_to_settings)
 
 settings.assess(args)
+data_manager = DataManager(settings)
 
 try:
-    model.train(settings, n_epochs=args.epoch, restore_type=args.restore_type)
+    model.train(settings, data_manager, n_epochs=args.epoch, restore_type=args.restore_type)
 except KeyboardInterrupt:
     print('exiting..')
 
 tf_util.freeze_graph(settings)
+tf_util.execute_frozen_model(settings, data_manager)
