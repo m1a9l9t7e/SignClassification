@@ -31,6 +31,8 @@ parser.add_argument('--seed', dest='seed', type=int, default=0)
 parser.add_argument('--output_node_name', dest='output_node_name', type=str, default='output_soft')
 parser.add_argument('--input_node_name', dest='input_node_name', type=str, default='input_placeholder')
 parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
+parser.add_argument('--train', dest='train', type=bool, default=True)
+parser.add_argument('--freeze', dest='freeze', type=bool, default=True)
 
 args = parser.parse_args()
 train_path, test_path = util.get_necessary_data(args.dataset_name, '.' + os.sep + 'data')
@@ -65,10 +67,13 @@ else:
 settings.assess(args)
 data_manager = DataManager(settings)
 
-try:
-    model.train(settings, data_manager, n_epochs=args.epoch, restore_type=args.restore_type)
-except KeyboardInterrupt:
-    print('exiting..')
+if args.train:
+    try:
+        model.train(settings, data_manager, n_epochs=args.epoch, restore_type=args.restore_type)
+    except KeyboardInterrupt:
+        print('exiting..')
 
-tf_util.freeze_graph(settings)
-tf_util.execute_frozen_model(settings, data_manager)
+if args.freeze:
+    tf_util.freeze_graph(settings)
+    # tf_util.convert_frozen_to_uff(settings)
+    # tf_util.execute_frozen_model(settings, data_manager)

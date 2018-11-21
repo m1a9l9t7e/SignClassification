@@ -1,3 +1,5 @@
+import uff
+
 import cv2
 import os
 import sys
@@ -109,3 +111,16 @@ def execute_frozen_model(settings, data_manager):
                                                                 settings.get_setting_by_name('channels')]))
                 cv2.waitKey(0)
     print('Execution finished.')
+
+
+def convert_frozen_to_uff(settings, output_dir=None):
+    output_dir = settings.get_output_path() if output_dir is None else output_dir
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    name = settings.get_setting_by_name('frozen_model_save_path').split(os.sep)[-1].split('.')[0] + 'frozen.uff'
+    output_filename = os.path.join(output_dir, name)
+
+    converted = uff.from_tensorflow_frozen_model(frozen_file=settings.get_setting_by_name('frozen_model_save_path'),
+                                                 output_nodes=[settings.get_setting_by_name('output_node_name')], preprocessor=None)
+    with tf.gfile.GFile(output_filename, "wb") as f:
+        f.write(converted)
