@@ -58,10 +58,10 @@ def model(x, y, dropout_probability, is_training, settings):
 
     with tf.variable_scope('dnn'):
         for i in range(len(fc_hidden_units)):
-            fc = tf.layers.dense(tensor, fc_hidden_units[i], activation=tf.nn.relu,
+            tensor = tf.layers.dense(tensor, fc_hidden_units[i], activation=tf.nn.relu,
                                  kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                  bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False), trainable=('dnn' not in training_lock))
-            tensor = tf.nn.dropout(fc, dropout_probability)
+            # tensor = tf.nn.dropout(fc, dropout_probability)
             description = 'fc: ' + str(fc_hidden_units[i])
             if 'dnn' in training_lock:
                 description += ' locked!'
@@ -99,8 +99,7 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
     """
     # np.random.seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
     # tf.set_random_seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
-    x = tf.placeholder(tf.float32, [None,
-                                    settings.get_setting_by_name('width') * settings.get_setting_by_name('height') * settings.get_setting_by_name('channels')],
+    x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width'), settings.get_setting_by_name('height'), settings.get_setting_by_name('channels')],
                        name=settings.get_setting_by_name('input_node_name'))
     y = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('num_classes')])
 
@@ -131,7 +130,7 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
     with tf.Session(config=config) as sess:
         saver = tf.train.Saver(max_to_keep=100)
         sess.run(tf.global_variables_initializer())
-        writer = tf.summary.FileWriter(settings.logs_path, graph=tf.get_default_graph())  # TODO writer
+        writer = tf.summary.FileWriter(settings.get_logs_path(), graph=tf.get_default_graph())
         if settings.get_setting_by_name('input_checkpoint') is not None:
             if restore_type == 'transfer':
                 training_lock = settings.get_setting_by_name('training_lock')
@@ -184,14 +183,12 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
                     if np.argmax(test_batch_y[i]) == np.argmax(test_prediction[i]):
                         correct += 1
                         if show_test and (epoch + 1) % 10 == 0:
-                            cv2.imshow('correct', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
-                                                                              settings.get_setting_by_name('channels')]))
+                            cv2.imshow('correct', test_batch_x[i])
                             cv2.waitKey(0)
                     else:
                         wrong += 1
                         if show_test and (epoch + 1) % 10 == 0:
-                            cv2.imshow('wrong', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
-                                                                            settings.get_setting_by_name('channels')]))
+                            cv2.imshow('wrong', test_batch_x[i])
                             cv2.waitKey(0)
                 test_batch_x, test_batch_y = data_manager.next_test_batch()
             test_accuracy = 100 * correct / (wrong + correct)

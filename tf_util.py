@@ -1,3 +1,4 @@
+import time
 import uff
 
 import cv2
@@ -6,6 +7,7 @@ import sys
 import tensorflow as tf
 import numpy as np
 
+import util
 from data import DataManager
 
 
@@ -95,22 +97,31 @@ def execute_frozen_model(settings, data_manager):
     with tf.Session(graph=graph) as sess:
         # Note: we don't nee to initialize/restore anything as there are no Variables in this graph, only hardcoded constants
         test_batch_x, test_batch_y = data_manager.next_test_batch()
-        predictions = sess.run(y, feed_dict={x: test_batch_x})
 
-        correct = 0
-        wrong = 0
-        for i in range(len(test_batch_y)):
-            if np.argmax(test_batch_y[i]) == np.argmax(predictions[i]):
-                correct += 1
-                cv2.imshow('correct', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
-                                                                  settings.get_setting_by_name('channels')]))
+        while len(test_batch_x) > 0:
+            timestamp = time.time()
+            predictions = sess.run(y, feed_dict={x: test_batch_x})
+            evaluation_time = time.time() - timestamp
+            print('Evaluation time of ', evaluation_time, 'seconds, for ', len(test_batch_x), ' images.')
+
+            correct = 0
+            wrong = 0
+            for i in range(len(test_batch_y)):
+                if np.argmax(test_batch_y[i]) == np.argmax(predictions[i]):
+                    correct += 1
+                    cv2.imshow('correct', test_batch_x[i])
+                else:
+                    wrong += 1
+                    cv2.imshow('wrong', test_batch_x[i])
                 cv2.waitKey(0)
-            else:
-                wrong += 1
-                cv2.imshow('wrong', np.resize(test_batch_x[i], [settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
-                                                                settings.get_setting_by_name('channels')]))
-                cv2.waitKey(0)
+            test_batch_x, test_batch_y = data_manager.next_test_batch()
     print('Execution finished.')
+
+
+def test_frozen_model(settings, data_manager):
+    test_batch_x, test_batch_y = data_manager.next_test_batch()
+    for i in range(len(test_batch_x)):
+        windows = util.sliding_window(image=test_batch_x[i], width=settings.get_setting_by_name('width'), height=settings.get_setting_by_name('height'), stride=10)
 
 
 def convert_frozen_to_uff(settings, output_dir=None):

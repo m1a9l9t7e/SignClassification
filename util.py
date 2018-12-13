@@ -1,9 +1,9 @@
+import cv2
 import os
 import shutil
 import sys
 import csv
 import zipfile
-
 import Augmentor
 from PIL import Image
 import requests
@@ -296,3 +296,52 @@ def change_image_mode_to_rgb(path_to_data):
                 if mode != 'RGB':
                     print(path_to_img + ' mode: ' + str(mode))
                     image.convert('RGB').save(path_to_img)
+
+
+def sliding_window(image, width, height, stride):
+    """
+    :param image: Image on which sliding window is to be performed
+    :param width: width of sliding window
+    :param height: height of sliding window
+    :param stride: stride of sliding window (equal for both axis)
+    :return: An array of sub-images extracted by the sliding window process
+    """
+    print(image.shape)
+    horizontal_steps = (image.shape[1] - width - 1) / stride + 1
+    vertical_steps = (image.shape[0] - height - 1) / stride + 1
+
+    images = []
+    window = []
+
+    cv2.imshow('original image', image)
+    cv2.waitKey(0)
+
+    for i in range(vertical_steps):
+        for j in range(horizontal_steps):
+            window = []
+            for k in range(width):
+                row = []
+                for l in range(height):
+                    row.append(image[i*stride][j*stride])
+                window.append(row)
+        images.append(window)
+        cv2.imshow('window', window)
+        cv2.waitKey(0)
+    return images
+
+
+def get_file_type(path_to_file):
+    """
+    :param path_to_file: path to file
+    :return: 'video' if file is a video
+             'image' if file is an image
+    """
+    extension = path_to_file.split('.')[-1]
+    if extension in ['avi', 'mp4', 'mp4c']:
+        return 'video'
+    elif extension in ['ppm', 'jpg', 'png']:
+        return 'image'
+    else:
+        print('ERROR: unknown file type: .', extension)
+        print('aborting')
+        sys.exit(0)

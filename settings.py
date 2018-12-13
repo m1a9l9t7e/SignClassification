@@ -9,9 +9,9 @@ class Settings:
     During runtime settings should be retrieved via get_settings_by_name(settings_name).
     """
     separator = ';'
-    logs_path = '.'+os.sep+'logs'+os.sep
     models_path = '.'+os.sep+'models'+os.sep
     save_path_from_model_root = os.sep+'saves'+os.sep
+    logs_path_from_model_root = os.sep+'logs'+os.sep
     output_path_from_model_root = os.sep+'output'+os.sep
     settings = []
 
@@ -136,6 +136,9 @@ class Settings:
     def get_save_path(self):
         return self.models_path + self.get_setting_by_name('model_name') + self.save_path_from_model_root
 
+    def get_logs_path(self):
+        return self.models_path + self.get_setting_by_name('model_name') + self.logs_path_from_model_root
+
     def get_output_path(self):
         return self.models_path + self.get_setting_by_name('model_name') + self.output_path_from_model_root
 
@@ -189,7 +192,7 @@ class Settings:
             input_checkpoint = self.get_save_path() + str(args.restore_argument) + '.ckpt'
             print('Model restored from ' + self.get_save_path() + str(args.restore_argument) + '.ckpt')
         elif args.restore_type == 'path' or args.restore_type == 'transfer':
-            if not os.path.exists(args.restore_argument):
+            if not os.path.isfile(args.restore_argument + '.index'):
                 print('ERROR: no model found at path: ', args.restore_argument)
                 print('Aborting.')
                 sys.exit(0)

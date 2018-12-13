@@ -15,7 +15,7 @@ parser.add_argument('--epoch', dest='epoch', type=int, default=100)
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=100)
 parser.add_argument('--height', dest='height', type=int, default=32)
 parser.add_argument('--width', dest='width', type=int, default=32)
-parser.add_argument('--channels', dest='channels', type=int, default=3)
+parser.add_argument('--channels', dest='channels', type=int, default=1)
 parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001)
 parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, default=0.99)
 parser.add_argument('--dropout', dest='dropout_probability', type=float, default=1.0)
@@ -33,6 +33,7 @@ parser.add_argument('--input_node_name', dest='input_node_name', type=str, defau
 parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
 parser.add_argument('--train', dest='train', type=bool, default=True)
 parser.add_argument('--freeze', dest='freeze', type=bool, default=True)
+parser.add_argument('--execute', dest='execute', type=bool, default=True)
 
 args = parser.parse_args()
 train_path, test_path = util.get_necessary_data(args.dataset_name, '.' + os.sep + 'data')
@@ -75,5 +76,7 @@ if args.train:
 
 if args.freeze:
     tf_util.freeze_graph(settings)
-    # tf_util.convert_frozen_to_uff(settings)
-    # tf_util.execute_frozen_model(settings, data_manager)
+
+if args.execute:
+    tf_util.execute_frozen_model(settings, data_manager)
+    # tf_util.test_frozen_model(settings, data_manager)

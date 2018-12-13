@@ -79,8 +79,8 @@ class DataManager:
         print("total number of images: " + str(len(images)))
         print(np.shape(images))
         images = np.array(images)
+        images = np.resize(images, [len(images), self.height, self.width, self.channels])
         labels = np.array(labels)
-        images = np.reshape(images, [images.shape[0], images.shape[1] * images.shape[2] * self.channels])
         if len(images) < self.batch_size:
             print('fewer images than a single batch size available!')
             sys.exit()
