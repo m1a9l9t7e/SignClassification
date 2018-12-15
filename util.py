@@ -8,6 +8,7 @@ import Augmentor
 from PIL import Image
 import requests
 from shutil import copyfile
+import numpy as np
 
 
 def arrange_data_into_class_folders(src_dir, out_dir, path_to_annotations):
@@ -339,9 +340,60 @@ def get_file_type(path_to_file):
     extension = path_to_file.split('.')[-1]
     if extension in ['avi', 'mp4', 'mp4c']:
         return 'video'
-    elif extension in ['ppm', 'jpg', 'png']:
+    elif extension in ['ppm', 'jpg', 'jpeg', 'png']:
         return 'image'
     else:
-        print('ERROR: unknown file type: .', extension)
+        print('ERROR: unsupported file type: .', extension)
         print('aborting')
         sys.exit(0)
+
+
+def read_any_data(path_to_folder):
+    """
+    Reads images (natively and from video) from given directory.
+    :param path_to_folder: the directory containing the data.
+    :param channels: number of channels for each image (has to be smaller or equal to channels of raw data)
+    :return: the images as a numpy array
+    """
+    images = []
+    counter = 0
+
+    for file in os.listdir(path_to_folder):
+        path_to_file = os.path.join(path_to_folder, file)
+        if get_file_type(path_to_file) == 'image':
+            sys.stdout.write('\rreading file (image) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
+            sys.stdout.flush()
+            image = cv2.imread(path_to_file)
+            if len(np.shape(image)) < 3:
+                image = np.expand_dims(file, 2)
+            images.append(image)
+        elif get_file_type(path_to_file) == 'video':
+            sys.stdout.write('\rreading file (video) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
+            sys.stdout.flush()
+            video = read_video(path_to_file)
+            for image in video:
+                if len(np.shape(image)) < 3:
+                    image = np.expand_dims(file, 2)
+                images.append(image)
+        else:
+            print('that\'s impossible!')
+        counter += 1
+
+    print("\ntotal number of images: " + str(len(images)))
+    print(np.shape(images))
+    images = np.array(images)
+    return images
+
+
+def read_video(path_to_video):
+    output = []
+    cap = cv2.VideoCapture(path_to_video)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        output.append(frame)
+        if not ret:
+            break
+
+    cap.release()
+    return output

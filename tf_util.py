@@ -118,12 +118,6 @@ def execute_frozen_model(settings, data_manager):
     print('Execution finished.')
 
 
-def test_frozen_model(settings, data_manager):
-    test_batch_x, test_batch_y = data_manager.next_test_batch()
-    for i in range(len(test_batch_x)):
-        windows = util.sliding_window(image=test_batch_x[i], width=settings.get_setting_by_name('width'), height=settings.get_setting_by_name('height'), stride=10)
-
-
 def convert_frozen_to_uff(settings, output_dir=None):
     output_dir = settings.get_output_path() if output_dir is None else output_dir
     if not os.path.exists(output_dir):
