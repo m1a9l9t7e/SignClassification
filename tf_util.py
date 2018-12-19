@@ -8,7 +8,7 @@ import tensorflow as tf
 import numpy as np
 
 import util
-from data import DataManager
+from data import DataManager, BatchProvider
 
 
 def freeze_graph(settings, output_dir=None):
@@ -68,7 +68,7 @@ def load_graph(frozen_graph_filename):
     return graph
 
 
-def execute_frozen_model(settings, data_manager):
+def execute_frozen_model(settings, batch_provider):
 
     graph = load_graph(settings.get_setting_by_name('frozen_model_save_path'))
     output_node_name = settings.get_setting_by_name('output_node_name')
@@ -96,25 +96,41 @@ def execute_frozen_model(settings, data_manager):
     print('Executing frozen model..')
     with tf.Session(graph=graph) as sess:
         # Note: we don't nee to initialize/restore anything as there are no Variables in this graph, only hardcoded constants
-        test_batch_x, test_batch_y = data_manager.next_test_batch()
+        batch_x, batch_y = batch_provider.next_batch()
 
-        while len(test_batch_x) > 0:
+        while len(batch_x) > 0:
             timestamp = time.time()
-            predictions = sess.run(y, feed_dict={x: test_batch_x})
+            predictions = sess.run(y, feed_dict={x: batch_x})
             evaluation_time = time.time() - timestamp
-            print('Evaluation time of ', evaluation_time, 'seconds, for ', len(test_batch_x), ' images.')
+            print('Evaluation time of ', evaluation_time, 'seconds, for ', len(batch_x), ' images.')
 
+            # === Go through labels if there are any ===
             correct = 0
             wrong = 0
-            for i in range(len(test_batch_y)):
-                if np.argmax(test_batch_y[i]) == np.argmax(predictions[i]):
+            for i in range(len(batch_y)):
+                if np.argmax(batch_y[i]) == np.argmax(predictions[i]):
                     correct += 1
-                    cv2.imshow('correct', test_batch_x[i])
+                    cv2.imshow('correct', batch_x[i])
                 else:
                     wrong += 1
-                    cv2.imshow('wrong', test_batch_x[i])
+                    cv2.imshow('wrong', batch_x[i])
                 cv2.waitKey(0)
-            test_batch_x, test_batch_y = data_manager.next_test_batch()
+
+            # === if no labels exist, evaluate in some other way ===
+            if len(batch_y) == 0:
+                print(len(predictions), " ", len(batch_x))
+                for i in range(len(predictions)):
+                    print(np.around(predictions[i], decimals=1))
+                    cv2.imshow('prediction', batch_x[i])
+                    cv2.waitKey(0)
+                    # if predictions[i][np.argmax(predictions[i])] > 0.95:
+                        # print('prediction: ', str(np.argmax(predictions[i])), ' confidence for stop: ', predictions[i][14])
+                        # cv2.imshow('prediction', batch_x[i])
+                        # cv2.waitKey(0)
+                    # if 30 < np.argmax(predictions[i]) < 35:
+
+
+            batch_x, batch_y = batch_provider.next_batch()
     print('Execution finished.')
 
 

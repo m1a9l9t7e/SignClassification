@@ -78,5 +78,4 @@ if args.freeze:
     tf_util.freeze_graph(settings)
 
 if args.execute:
-    tf_util.execute_frozen_model(settings, data_manager)
-    # tf_util.test_frozen_model(settings, data_manager)
+    tf_util.execute_frozen_model(settings, data_manager.test_provider)
