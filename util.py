@@ -397,3 +397,32 @@ def read_video(path_to_video):
 
     cap.release()
     return output
+
+
+class Rect:
+    def __init__(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+    def unpack(self):
+        return self.x, self.y, self.width, self.height
+
+    def __str__(self):
+        return str(self.x) + ' ' + str(self.y) + ' ' + str(self.width) + ' ' + str(self.height)
+
+
+def get_rects_sliding_window(settings, image, window_width, window_height, stride):
+    x_iter = 0
+    y_iter = 0
+    rects = []
+    while x_iter * stride + window_width < np.shape(image)[1]:
+        while y_iter * stride + window_height < np.shape(image)[0]:
+            rect = Rect(x_iter*stride, y_iter*stride, x_iter*stride+window_width, y_iter*stride+window_height)
+            rects.append(rect)
+            y_iter += 1
+        y_iter = 0
+        x_iter += 1
+
+    return rects

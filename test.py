@@ -53,10 +53,14 @@ else:
 data = util.read_any_data(args.path_to_test_data)
 test_images = [data[200], data[400], data[600], data[800], data[1000]]
 
-
+rectslist = []
 for image in test_images:
-    cv2.imshow('original', image)
-    cv2.waitKey(0)
-    windows = sliding_window(settings, image, 60, 60, 10)
-    batch_provider = OrderedBatchProvider(windows, [], settings.get_setting_by_name('batch_size'))
-    tf_util.execute_frozen_model(settings, batch_provider)
+    rectslist.append(util.get_rects_sliding_window(settings, image, 30, 30, 15))
+    # cv2.imshow('original', image)
+    # cv2.waitKey(0)
+    # windows = sliding_window(settings, image, 60, 60, 10)
+    # batch_provider = OrderedBatchProvider(windows, [], settings.get_setting_by_name('batch_size'))
+    # tf_util.execute_frozen_model(settings, batch_provider)
+
+print(np.shape(rectslist))
+tf_util.execute_on_subimages(settings, test_images, rectslist)

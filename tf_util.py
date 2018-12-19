@@ -134,6 +134,85 @@ def execute_frozen_model(settings, batch_provider):
     print('Execution finished.')
 
 
+def execute_on_subimages(settings, images, rectslist):
+    graph = load_graph(settings.get_setting_by_name('frozen_model_save_path'))
+    output_node_name = settings.get_setting_by_name('output_node_name')
+    input_node_name = settings.get_setting_by_name('input_node_name')
+
+    input_node_in_graph = False
+    output_node_in_graph = False
+    graph_nodes = graph.get_operations()
+
+    for op in graph.get_operations():
+        if op.name == input_node_name:
+            input_node_in_graph = True
+        if op.name == output_node_name:
+            output_node_in_graph = True
+    if not (input_node_in_graph and output_node_in_graph):
+        print('Input or output node specified in settings is not in graph!')
+        print('Abort.')
+        sys.exit(0)
+
+    input_node = graph.get_tensor_by_name(input_node_name+':0')
+    output_node = graph.get_tensor_by_name(output_node_name+':0')
+
+    with tf.Session(graph=graph) as sess:
+
+        batch_size = settings.get_setting_by_name('batch_size')
+        for i in range(len(images)):
+            image = images[i]
+            rects = rectslist[i]
+            for rect in rects:
+                print(rect)
+            subimages = []
+            predictions = []
+            while len(rects) > 0:
+                if len(rects) > batch_size:
+                    batch_rects = rects[0:batch_size]
+                    del rects[0:batch_size]
+                else:
+                    batch_rects = rects
+                    rects = []
+
+                batch_subimages = []
+
+                for rect in batch_rects:
+                    x, y, width, height = rect.unpack()
+                    subimage = image[y:y + height, x:x + width]
+                    if settings.get_setting_by_name('channels') == 1:
+                        subimage = cv2.cvtColor(subimage, cv2.COLOR_BGR2GRAY, )
+                    subimage = cv2.resize(subimage, (settings.get_setting_by_name('height'), settings.get_setting_by_name('width')))
+                    if len(np.shape(subimage)) < 3:
+                        subimage = np.expand_dims(subimage, 3)
+                    batch_subimages.append(subimage)
+
+                print(np.shape(batch_subimages))
+                batch_prediction = sess.run(output_node, feed_dict={input_node: batch_subimages})
+                # predictions.append(batch_prediction)
+                # subimages.append(batch_subimages)
+                if len(predictions) == 0:
+                    predictions = batch_prediction
+                    subimages = batch_subimages
+                else:
+                    predictions = np.concatenate([predictions, batch_prediction])
+                    subimages = np.concatenate([subimages, batch_subimages])
+
+            if not(len(predictions) == len(subimages)):
+                print('ERROR in subimage loop!')
+                print('len(predictions): ', len(predictions), ' len(subimages): ', len(subimages))
+                sys.exit(0)
+
+            rects = rectslist[i]
+            for j in range(len(predictions)):
+                # print(np.around(predictions[j], decimals=2))
+                x, y, width, height = rects[j].unpack()
+                # print(rects[j])
+                image_with_rect = cv2.rectangle(image, (x, y), (width, height), (0, 255, 0), 2)
+                cv2.imshow('image', image_with_rect)
+                cv2.waitKey(0)
+    print('Execution finished.')
+
+
 def convert_frozen_to_uff(settings, output_dir=None):
     output_dir = settings.get_output_path() if output_dir is None else output_dir
     if not os.path.exists(output_dir):
