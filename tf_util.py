@@ -138,6 +138,7 @@ def execute_on_subimages(settings, images, rectslist):
     graph = load_graph(settings.get_setting_by_name('frozen_model_save_path'))
     output_node_name = settings.get_setting_by_name('output_node_name')
     input_node_name = settings.get_setting_by_name('input_node_name')
+    class_names = settings.get_setting_by_name('class_names')
 
     input_node_in_graph = False
     output_node_in_graph = False
@@ -161,15 +162,15 @@ def execute_on_subimages(settings, images, rectslist):
         batch_size = settings.get_setting_by_name('batch_size')
         for i in range(len(images)):
             image = images[i]
-            rects = rectslist[i]
-            for rect in rects:
-                print(rect)
+            rects = np.copy(rectslist[i])
+            # for rect in rects:
+            #     print(rect)
             subimages = []
             predictions = []
             while len(rects) > 0:
                 if len(rects) > batch_size:
                     batch_rects = rects[0:batch_size]
-                    del rects[0:batch_size]
+                    rects = rects[batch_size+1:]
                 else:
                     batch_rects = rects
                     rects = []
@@ -186,7 +187,6 @@ def execute_on_subimages(settings, images, rectslist):
                         subimage = np.expand_dims(subimage, 3)
                     batch_subimages.append(subimage)
 
-                print(np.shape(batch_subimages))
                 batch_prediction = sess.run(output_node, feed_dict={input_node: batch_subimages})
                 # predictions.append(batch_prediction)
                 # subimages.append(batch_subimages)
@@ -203,11 +203,24 @@ def execute_on_subimages(settings, images, rectslist):
                 sys.exit(0)
 
             rects = rectslist[i]
+            # print('just before rects: ', np.shape(rects))
+            # print('just before predictions: ', np.shape(predictions))
             for j in range(len(predictions)):
-                # print(np.around(predictions[j], decimals=2))
+                np.set_printoptions(linewidth=300)
+                indicees = np.argpartition(predictions[j], -5)[-5:]
+                classes = predictions[j][indicees]
+                idx = np.argsort(classes)[::-1]
+                classes = np.array(classes)[idx]
+                indicees = np.array(indicees)[idx]
+                _class_names = np.array(class_names)[indicees]
+
+                print('Predictions: ')
+                for k in range(len(indicees)):
+                    print(str(k+1)+'. ', _class_names[k][2:-1], ' with a confidence of ', np.round(classes[k], 2))
+                print('\n')
+
                 x, y, width, height = rects[j].unpack()
-                # print(rects[j])
-                image_with_rect = cv2.rectangle(image, (x, y), (width, height), (0, 255, 0), 2)
+                image_with_rect = cv2.rectangle(np.copy(image), (x, y), (width, height), (0, 255, 0), 2)
                 cv2.imshow('image', image_with_rect)
                 cv2.waitKey(0)
     print('Execution finished.')

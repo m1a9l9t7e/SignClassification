@@ -17,3 +17,6 @@ Options for restoring a model:
     - restore_type='transfer',
     - restore_argument='./models/deep-cnn/saves/epoch119.ckpt'
     - lock='cnn'
+    
+
+--data isf --channels 1 --model transfer --restore transfer --lock cnn-dnn --restore_argument ./models/gtsrb/saves/epoch53.ckpt --epoch 200

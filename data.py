@@ -17,16 +17,21 @@ class DataManager:
         self.channels = settings.get_setting_by_name('channels')
         self.batch_size = settings.get_setting_by_name('batch_size')
         print('reading train data:')
-        self.train_images, self.labels, num_classes_train = self.read(settings.get_setting_by_name('train_data_dir'))
+        self.train_images, self.labels, classes_train = self.read(settings.get_setting_by_name('train_data_dir'))
         print('reading test data:')
-        self.test_images, self.test_labels, num_classes_test = self.read(settings.get_setting_by_name('test_data_dir'))
+        self.test_images, self.test_labels, classes_test = self.read(settings.get_setting_by_name('test_data_dir'))
         self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size)
         self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size)
-        if num_classes_train != num_classes_test:
+        if len(classes_train) != len(classes_test):
             print("number of classes of train and test set don't match!")
             sys.exit(0)
         else:
-            settings.update({'num_classes': num_classes_train})
+            settings.update({'num_classes': len(classes_train)})
+            for i in range(len(classes_train)):
+                if classes_train[i] != classes_test[i]:
+                    print('ERROR: train and test classes don\'t match.')
+                    sys.exit(0)
+        settings.update({'class_names': classes_train})
 
     def image_conversion(self, image):
         """
@@ -51,8 +56,10 @@ class DataManager:
         labels = []
 
         distribution = []
+        classes = []
 
         subdirs = list(os.walk(data_dir))[0][1]
+        subdirs = sorted(subdirs)
         for i in range(len(subdirs)):
             path = os.path.join(data_dir, subdirs[i])
             list_dir = os.listdir(path)
@@ -70,6 +77,7 @@ class DataManager:
                 counter += 1
             sys.stdout.write('\rreading files from subdirectory ' + str(i+1) + '/' + str(len(subdirs)))
             sys.stdout.flush()
+            classes.append(subdirs[i])
             distribution.append((subdirs[i], counter))
 
         if print_distribution:
@@ -84,7 +92,7 @@ class DataManager:
         if len(images) < self.batch_size:
             print('fewer images than a single batch size available!')
             sys.exit()
-        return images, labels, len(subdirs)
+        return images, labels, classes
 
     def next_batch(self):
         """
