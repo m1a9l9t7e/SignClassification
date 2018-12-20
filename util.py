@@ -71,6 +71,8 @@ def get_necessary_data(dataset_name, data_dir):
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':
             download_file_from_google_drive('1I5J1OZPti20w8zFGYsBqbyaiN7X8z4iB', data_dir + os.sep + 'data.zip')
+        elif dataset_name == 'sliding_window':
+            download_file_from_google_drive('1r84rQCFzj7VT2OlHuvRdeCBobgLvhnlr', data_dir + os.sep + 'data.zip')
         print('Unzipping..')
         zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
         zip_ref.extractall(data_dir)
