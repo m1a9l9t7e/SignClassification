@@ -1,11 +1,12 @@
 import argparse
 import datetime
+import sys
 import warnings
 import os
 import model
 import util
 import tf_util
-from data import DataManager
+from data import DataManager, OrderedBatchProvider
 from settings import Settings
 
 warnings.filterwarnings("ignore")
@@ -15,7 +16,7 @@ parser.add_argument('--epoch', dest='epoch', type=int, default=100)
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=100)
 parser.add_argument('--height', dest='height', type=int, default=32)
 parser.add_argument('--width', dest='width', type=int, default=32)
-parser.add_argument('--channels', dest='channels', type=int, default=1)
+parser.add_argument('--channels', dest='channels', type=int, default=3)
 parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001)
 parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, default=0.99)
 parser.add_argument('--dropout', dest='dropout_probability', type=float, default=1.0)
@@ -31,12 +32,16 @@ parser.add_argument('--seed', dest='seed', type=int, default=0)
 parser.add_argument('--output_node_name', dest='output_node_name', type=str, default='output_soft')
 parser.add_argument('--input_node_name', dest='input_node_name', type=str, default='input_placeholder')
 parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
-parser.add_argument('--train', dest='train', type=bool, default=True)
-parser.add_argument('--freeze', dest='freeze', type=bool, default=True)
-parser.add_argument('--execute', dest='execute', type=bool, default=True)
+parser.add_argument('--train', dest='train', action='store_true', default=True)
+parser.add_argument('--no-train', dest='train', action='store_false', default=True)
+parser.add_argument('--freeze', dest='freeze', action='store_true', default=False)
+parser.add_argument('--no-freeze', dest='freeze', action='store_false', default=False)
+parser.add_argument('--execute', dest='execute', action='store_true', default=False)
+parser.add_argument('--no-execute', dest='execute', action='store_false', default=False)
 
 args = parser.parse_args()
-train_path, test_path = util.get_necessary_data(args.dataset_name, '.' + os.sep + 'data')
+
+train_path, test_path = util.get_necessary_dataset(args.dataset_name, '.' + os.sep + 'data')
 
 if args.augment_dataset:
     util.augment_data(scalar=args.augment_scalar, path_to_data=train_path, path_to_index=util.get_index(train_path), balance=False)
@@ -72,7 +77,7 @@ if args.train:
     try:
         model.train(settings, data_manager, n_epochs=args.epoch, restore_type=args.restore_type)
     except KeyboardInterrupt:
-        print('exiting..')
+        print('Stop training..')
 
 if args.freeze:
     tf_util.freeze_graph(settings)

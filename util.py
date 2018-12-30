@@ -53,7 +53,7 @@ def arrange_data_into_class_folders(src_dir, out_dir, path_to_annotations):
                 line_count += 1
 
 
-def get_necessary_data(dataset_name, data_dir):
+def get_necessary_dataset(dataset_name, data_dir):
     """
     If data set is missing, download und unzip data set from cloud.
     :param dataset_name: name of the data set.
@@ -80,6 +80,29 @@ def get_necessary_data(dataset_name, data_dir):
         print('Deleting zip..')
         os.remove(data_dir + os.sep + 'data.zip')
     return data_dir + os.sep + dataset_name + os.sep + 'train', data_dir + os.sep + dataset_name + os.sep + 'test'
+
+
+def get_necessary_test_data(test_data_name, data_dir):
+    """
+    If data set is missing, download und unzip data set from cloud.
+    :param test_data_name: name of the test data.
+                         Choices: 'sliding_window' a list of videos for sliding window to be performed on.
+    :param data_dir: the directory, to which the data set will be extracted
+    :return: path to the training data directory and path to the test data directory
+    """
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    if not os.path.exists(data_dir + os.sep + test_data_name):
+        print('Downloading..')
+        if test_data_name == 'sliding_window':
+            download_file_from_google_drive('1NNHMEyL-2of-SdpXprXAQW9PJJ10g6_j', data_dir + os.sep + 'data.zip')
+        print('Unzipping..')
+        zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
+        zip_ref.extractall(data_dir)
+        zip_ref.close()
+        print('Deleting zip..')
+        os.remove(data_dir + os.sep + 'data.zip')
+    return data_dir + os.sep + test_data_name
 
 
 def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance='False'):
@@ -415,7 +438,7 @@ class Rect:
         return str(self.x) + ' ' + str(self.y) + ' ' + str(self.width) + ' ' + str(self.height)
 
 
-def get_rects_sliding_window(settings, image, window_width, window_height, stride):
+def get_rects_sliding_window(image, window_width, window_height, stride):
     x_iter = 0
     y_iter = 0
     rects = []
@@ -428,3 +451,25 @@ def get_rects_sliding_window(settings, image, window_width, window_height, strid
         x_iter += 1
 
     return rects
+
+
+def sliding_window(settings, image, window_width, window_height, stride):
+    x_iter = 0
+    y_iter = 0
+    windows = []
+    while x_iter * stride + window_width < np.shape(image)[1]:
+        while y_iter * stride + window_height < np.shape(image)[0]:
+            window = image[y_iter*stride:y_iter*stride+window_height, x_iter*stride:x_iter*stride+window_width]
+            if settings.get_setting_by_name('channels') == 1:
+                window = cv2.cvtColor(window, cv2.COLOR_BGR2GRAY, )
+            window = cv2.resize(window, (settings.get_setting_by_name('height'), settings.get_setting_by_name('width')))
+            if len(np.shape(window)) < 3:
+                window = np.expand_dims(window, 3)
+            windows.append(window)
+            # cv2.imshow('window', window)
+            # cv2.waitKey(0)
+            y_iter += 1
+        y_iter = 0
+        x_iter += 1
+
+    return windows

@@ -1,6 +1,4 @@
 import time
-import uff
-
 import cv2
 import os
 import sys
@@ -73,6 +71,7 @@ def execute_frozen_model(settings, batch_provider):
     graph = load_graph(settings.get_setting_by_name('frozen_model_save_path'))
     output_node_name = settings.get_setting_by_name('output_node_name')
     input_node_name = settings.get_setting_by_name('input_node_name')
+    model_prediction_class_names = settings.get_setting_by_name('class_names')
 
     input_node_in_graph = False
     output_node_in_graph = False
@@ -104,31 +103,30 @@ def execute_frozen_model(settings, batch_provider):
             evaluation_time = time.time() - timestamp
             print('Evaluation time of ', evaluation_time, 'seconds, for ', len(batch_x), ' images.')
 
-            # === Go through labels if there are any ===
             correct = 0
             wrong = 0
-            for i in range(len(batch_y)):
-                if np.argmax(batch_y[i]) == np.argmax(predictions[i]):
-                    correct += 1
-                    cv2.imshow('correct', batch_x[i])
-                else:
-                    wrong += 1
-                    cv2.imshow('wrong', batch_x[i])
+
+            for j in range(len(predictions)):
+                indicees = np.argpartition(predictions[j], -4)[-4:]
+                classes = predictions[j][indicees]
+                idx = np.argsort(classes)[::-1]
+                classes = np.array(classes)[idx]
+                indicees = np.array(indicees)[idx]
+                _class_names = np.array(model_prediction_class_names)[indicees]
+
+                print('Predictions: ')
+                for k in range(len(indicees)):
+                    print(str(k + 1) + '. ', _class_names[k], ' with a confidence of ', np.round(classes[k], 2))
+                print('\n')
+
+                if len(batch_y) > j:
+                    print('correct class: ', batch_provider.class_names[np.argmax(batch_y[j])])
+                    if np.argmax(batch_y[j]) == np.argmax(predictions[j]):
+                        correct += 1
+                    else:
+                        wrong += 1
+                cv2.imshow('image', batch_x[j])
                 cv2.waitKey(0)
-
-            # === if no labels exist, evaluate in some other way ===
-            if len(batch_y) == 0:
-                print(len(predictions), " ", len(batch_x))
-                for i in range(len(predictions)):
-                    print(np.around(predictions[i], decimals=1))
-                    cv2.imshow('prediction', batch_x[i])
-                    cv2.waitKey(0)
-                    # if predictions[i][np.argmax(predictions[i])] > 0.95:
-                        # print('prediction: ', str(np.argmax(predictions[i])), ' confidence for stop: ', predictions[i][14])
-                        # cv2.imshow('prediction', batch_x[i])
-                        # cv2.waitKey(0)
-                    # if 30 < np.argmax(predictions[i]) < 35:
-
 
             batch_x, batch_y = batch_provider.next_batch()
     print('Execution finished.')
@@ -207,7 +205,7 @@ def execute_on_subimages(settings, images, rectslist):
             # print('just before predictions: ', np.shape(predictions))
             for j in range(len(predictions)):
                 np.set_printoptions(linewidth=300)
-                indicees = np.argpartition(predictions[j], -5)[-5:]
+                indicees = np.argpartition(predictions[j], -4)[-4:]
                 classes = predictions[j][indicees]
                 idx = np.argsort(classes)[::-1]
                 classes = np.array(classes)[idx]
@@ -226,14 +224,15 @@ def execute_on_subimages(settings, images, rectslist):
     print('Execution finished.')
 
 
-def convert_frozen_to_uff(settings, output_dir=None):
-    output_dir = settings.get_output_path() if output_dir is None else output_dir
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    name = settings.get_setting_by_name('frozen_model_save_path').split(os.sep)[-1].split('.')[0] + 'frozen.uff'
-    output_filename = os.path.join(output_dir, name)
-
-    converted = uff.from_tensorflow_frozen_model(frozen_file=settings.get_setting_by_name('frozen_model_save_path'),
-                                                 output_nodes=[settings.get_setting_by_name('output_node_name')], preprocessor=None)
-    with tf.gfile.GFile(output_filename, "wb") as f:
-        f.write(converted)
+# import uff
+# def convert_frozen_to_uff(settings, output_dir=None):
+#     output_dir = settings.get_output_path() if output_dir is None else output_dir
+#     if not os.path.exists(output_dir):
+#         os.makedirs(output_dir)
+#     name = settings.get_setting_by_name('frozen_model_save_path').split(os.sep)[-1].split('.')[0] + 'frozen.uff'
+#     output_filename = os.path.join(output_dir, name)
+#
+#     converted = uff.from_tensorflow_frozen_model(frozen_file=settings.get_setting_by_name('frozen_model_save_path'),
+#                                                  output_nodes=[settings.get_setting_by_name('output_node_name')], preprocessor=None)
+#     with tf.gfile.GFile(output_filename, "wb") as f:
+#         f.write(converted)

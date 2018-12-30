@@ -90,11 +90,12 @@ class Settings:
 
         print('Settings restored.')
 
-    def update(self, arg_dict):
+    def update(self, arg_dict, write_to_file=True):
         """
         Iterates over the given dict. If settings with same name is already
         present it will be replaced, otherwise a new setting is added.
         Modified settings will be written to disk.
+        :param write_to_file: write changes to file if True
         :param arg_dict: The dict with the new/updated settings.
         """
         for key in arg_dict:
@@ -112,7 +113,8 @@ class Settings:
                     exists = True
             if not exists:
                 self.settings.append(new_settings_item)
-        self.save(update=True)
+        if write_to_file:
+            self.save(update=True)
 
     def get_setting_by_name(self, name):
         """

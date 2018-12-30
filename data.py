@@ -16,22 +16,36 @@ class DataManager:
         self.width = settings.get_setting_by_name('width')
         self.channels = settings.get_setting_by_name('channels')
         self.batch_size = settings.get_setting_by_name('batch_size')
-        print('reading train data:')
-        self.train_images, self.labels, classes_train = self.read(settings.get_setting_by_name('train_data_dir'))
-        print('reading test data:')
-        self.test_images, self.test_labels, classes_test = self.read(settings.get_setting_by_name('test_data_dir'))
-        self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size)
-        self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size)
-        if len(classes_train) != len(classes_test):
-            print("number of classes of train and test set don't match!")
-            sys.exit(0)
+
+        if not os.path.exists(settings.get_setting_by_name('train_data_dir')):
+            print('train data not found.')
+            classes_train = [None]
+            self.train_provider = OrderedBatchProvider([None], [None], 0, classes_train)
         else:
-            settings.update({'num_classes': len(classes_train)})
-            for i in range(len(classes_train)):
-                if classes_train[i] != classes_test[i]:
-                    print('ERROR: train and test classes don\'t match.')
-                    sys.exit(0)
-        settings.update({'class_names': classes_train})
+            print('reading train data:')
+            self.train_images, self.labels, classes_train = self.read(settings.get_setting_by_name('train_data_dir'))
+            self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size, classes_train)
+
+        if not os.path.exists(settings.get_setting_by_name('test_data_dir')):
+            print('test data not found.')
+            classes_test = [None]
+            self.test_provider = OrderedBatchProvider([None], [None], 0, classes_test)
+        else:
+            print('reading test data:')
+            self.test_images, self.test_labels, classes_test = self.read(settings.get_setting_by_name('test_data_dir'))
+            self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size, classes_test)
+
+        if not (len(classes_train) <= 1 or len(classes_test) <= 1):
+            if len(classes_train) != len(classes_test):
+                print("number of classes of train and test set don't match!")
+                sys.exit(0)
+            else:
+                settings.update({'num_classes': len(classes_train)})
+                for i in range(len(classes_train)):
+                    if classes_train[i] != classes_test[i]:
+                        print('ERROR: train and test classes don\'t match.')
+                        sys.exit(0)
+            settings.update({'class_names': classes_train})
 
     def image_conversion(self, image):
         """
@@ -116,10 +130,11 @@ class DataManager:
 
 
 class BatchProvider:
-    def __init__(self, data, labels, batch_size):
+    def __init__(self, data, labels, batch_size, class_names):
         self.data = data
         self.labels = labels
         self.batch_size = batch_size
+        self.class_names = class_names
         self.iteration = 0
         self.reset()
 

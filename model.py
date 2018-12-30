@@ -217,8 +217,7 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
                     os.makedirs(save_dir)
                 save_path = save_dir + 'epoch' + str(epoch) + '.ckpt'
                 saver.save(sess, save_path)
-                settings.update({'model_save_path': save_path})
-                settings.update({'input_checkpoint': save_path})
+                settings.update({'model_save_path': save_path, 'input_checkpoint': save_path})
                 print('Model saved at ', save_path)
 
         print('Optimization Finished')
