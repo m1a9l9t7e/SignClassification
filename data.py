@@ -1,9 +1,12 @@
+import random
+
 import cv2
 from abc import abstractmethod
 import numpy as np
 import os
 import sys
 from ascii_graph import Pyasciigraph
+from data_generator import Generator
 
 
 class DataManager:
@@ -35,7 +38,7 @@ class DataManager:
             self.test_images, self.test_labels, classes_test = self.read(settings.get_setting_by_name('test_data_dir'))
             self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size, classes_test)
 
-        if not (len(classes_train) <= 1 or len(classes_test) <= 1):
+        if not (len(classes_train) <= 1 or len(classes_test) <= 1):  # either test or train data was not found
             if len(classes_train) != len(classes_test):
                 print("number of classes of train and test set don't match!")
                 sys.exit(0)
@@ -46,6 +49,11 @@ class DataManager:
                         print('ERROR: train and test classes don\'t match.')
                         sys.exit(0)
             settings.update({'class_names': classes_train})
+
+        if settings.get_setting_by_name('use_artificial_training_data'):
+            self.generator = Generator(settings, settings.get_setting_by_name('path_to_background_data'), settings.get_setting_by_name('path_to_foreground_data'))
+        else:
+            self.generator = None
 
     def image_conversion(self, image):
         """
@@ -113,6 +121,12 @@ class DataManager:
         Returns next train batch.
         :return: images and labels as numpy arrays. First dimension is equal to batch_size
         """
+        if self.generator is not None:
+            # return self.train_provider.next_batch() if random.choice([True, False]) else self.generator.generate(self.batch_size)
+            if random.uniform(0, 1.0) < 0.01:
+                return [], []
+            else:
+                return self.generator.generate(self.batch_size)
         return self.train_provider.next_batch()
 
     def next_test_batch(self):

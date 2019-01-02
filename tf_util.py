@@ -161,8 +161,6 @@ def execute_on_subimages(settings, images, rectslist):
         for i in range(len(images)):
             image = images[i]
             rects = np.copy(rectslist[i])
-            # for rect in rects:
-            #     print(rect)
             subimages = []
             predictions = []
             while len(rects) > 0:
@@ -214,7 +212,7 @@ def execute_on_subimages(settings, images, rectslist):
 
                 print('Predictions: ')
                 for k in range(len(indicees)):
-                    print(str(k+1)+'. ', _class_names[k][2:-1], ' with a confidence of ', np.round(classes[k], 2))
+                    print(str(k+1)+'. ', _class_names[k], ' with a confidence of ', np.round(classes[k], 2))
                 print('\n')
 
                 x, y, width, height = rects[j].unpack()

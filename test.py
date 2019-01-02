@@ -8,6 +8,9 @@ from data import DataManager
 from settings import Settings
 import numpy as np
 
+# Beispielaufraufe:
+# --settings ./models/isfbig/settings.txt --method regular --data test
+
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
@@ -25,12 +28,12 @@ else:
 
 path_to_test_data = util.get_necessary_test_data(args.dataset_name, '.' + os.sep + 'data')
 if args.method == 'sliding_window':
-    data = util.read_any_data(path_to_test_data)[:-1]
-    data = [data[200], data[400], data[600], data[800], data[1000]]
+    data = util.read_any_data(path_to_test_data)
+    # data = [data[200], data[400], data[600], data[800], data[1000]]
 
     rectangle_list = []
     for image in data:
-        rectangle_list.append(util.get_rects_sliding_window(image, 60, 60, 60))#
+        rectangle_list.append(util.get_rects_sliding_window(image, 60, 60, 60))
 
     print('shape of structure holding rects: ', np.shape(rectangle_list))
     tf_util.execute_on_subimages(settings, data, rectangle_list)

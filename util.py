@@ -1,3 +1,5 @@
+import PIL
+
 import cv2
 import os
 import shutil
@@ -307,21 +309,19 @@ def convert_ppm_to_png(path_to_data):
 
 
 def change_image_mode_to_rgb(path_to_data):
-    subdirs = list(os.walk(path_to_data))[0][1]
-    for i in range(len(subdirs)):
-        path = os.path.join(path_to_data, subdirs[i])
-        list_dir = os.listdir(path)
-        for image in list_dir:
-            if '.csv' in image:
-                os.remove(os.path.join(path, image))
-            else:
-                path_to_img = os.path.join(path, image)
-                image = Image.open(path_to_img)
-                # print(image.mode)
+    for path in os.walk(path_to_data):
+        if get_file_type(path_to_data) == 'subdir':
+            change_image_mode_to_rgb(path)
+        elif get_file_type(path_to_data) == 'image':
+            if not '.csv' in image:
+                image = Image.open(path)
                 mode = image.mode
                 if mode != 'RGB':
-                    print(path_to_img + ' mode: ' + str(mode))
-                    image.convert('RGB').save(path_to_img)
+                    print(path + ' mode: ' + str(mode))
+                    image.convert('RGB').save(path)
+        else:
+            print('ERROR: file type not supported!')
+            sys.exit(0)
 
 
 def sliding_window(image, width, height, stride):
@@ -367,28 +367,34 @@ def get_file_type(path_to_file):
         return 'video'
     elif extension in ['ppm', 'jpg', 'jpeg', 'png']:
         return 'image'
+    elif os.path.isdir(path_to_file):
+        return 'subdirectory'
     else:
         print('ERROR: unsupported file type: .', extension)
         print('aborting')
         sys.exit(0)
 
 
-def read_any_data(path_to_folder):
+def read_any_data(path_to_folder, imread_unchanged=False):
     """
     Reads images (natively and from video) from given directory.
     :param path_to_folder: the directory containing the data.
-    :param channels: number of channels for each image (has to be smaller or equal to channels of raw data)
     :return: the images as a numpy array
     """
     images = []
     counter = 0
 
-    for file in os.listdir(path_to_folder):
+    listdir = os.listdir(path_to_folder)
+    listdir = sorted(listdir)
+    for file in listdir:
         path_to_file = os.path.join(path_to_folder, file)
         if get_file_type(path_to_file) == 'image':
             sys.stdout.write('\rreading file (image) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
             sys.stdout.flush()
-            image = cv2.imread(path_to_file)
+            if imread_unchanged:
+                image = cv2.imread(path_to_file, cv2.IMREAD_UNCHANGED)
+            else:
+                image = cv2.imread(path_to_file)
             if len(np.shape(image)) < 3:
                 image = np.expand_dims(file, 2)
             images.append(image)
@@ -396,16 +402,22 @@ def read_any_data(path_to_folder):
             sys.stdout.write('\rreading file (video) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
             sys.stdout.flush()
             video = read_video(path_to_file)
-            for image in video:
+            for i in range(len(video)-1):
+                image = video[i]
                 if len(np.shape(image)) < 3:
                     image = np.expand_dims(file, 2)
+                images.append(image)
+        elif get_file_type(path_to_file) == 'subdirectory':
+            sys.stdout.write('reading files from subdirectory ' + path_to_file + ' ..')
+            sys.stdout.flush()
+            subdirectory_images = read_any_data(path_to_file)
+            for image in subdirectory_images:
                 images.append(image)
         else:
             print('that\'s impossible!')
         counter += 1
 
     print("\ntotal number of images: " + str(len(images)))
-    print(np.shape(images))
     images = np.array(images)
     return images
 
@@ -473,3 +485,20 @@ def sliding_window(settings, image, window_width, window_height, stride):
         x_iter += 1
 
     return windows
+
+def merge_images(bg, fg, x, y):
+    bg_height = np.shape(bg)[0]
+    bg_width = np.shape(bg)[1]
+    fg_height = np.shape(fg)[0]
+    fg_width = np.shape(fg)[1]
+
+    fg = PIL.Image.fromarray(cv2.cvtColor(fg, cv2.COLOR_BGR2RGBA))
+    bg = PIL.Image.fromarray(cv2.cvtColor(bg, cv2.COLOR_BGR2RGBA))
+
+    box = Image.new('RGBA', (bg_width, bg_height), (0, 0, 0, 0))
+    box.paste(bg, (0, 0))
+    box.paste(fg, (x, y), mask=fg)
+    output = cv2.cvtColor(np.array(box), cv2.COLOR_RGBA2BGR)
+    cv2.imshow('win', output)
+    cv2.waitKey(0)
+    return output

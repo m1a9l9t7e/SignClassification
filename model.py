@@ -1,11 +1,7 @@
-import sys
-
 import cv2
 import os
 import numpy as np
 import tensorflow as tf
-from data import DataManager
-from tensorflow.python.tools import freeze_graph
 
 
 def model(x, y, dropout_probability, is_training, settings):
@@ -61,7 +57,7 @@ def model(x, y, dropout_probability, is_training, settings):
             tensor = tf.layers.dense(tensor, fc_hidden_units[i], activation=tf.nn.relu,
                                  kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                  bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False), trainable=('dnn' not in training_lock))
-            # tensor = tf.nn.dropout(fc, dropout_probability)
+            # tensor = tf.nn.dropout(tensor, dropout_probability)
             description = 'fc: ' + str(fc_hidden_units[i])
             if 'dnn' in training_lock:
                 description += ' locked!'
@@ -215,7 +211,7 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
                 save_dir = settings.get_save_path()
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
-                save_path = save_dir + 'epoch' + str(epoch) + '.ckpt'
+                save_path = save_dir + 'epoch' + str(epoch+1) + '.ckpt'
                 saver.save(sess, save_path)
                 settings.update({'model_save_path': save_path, 'input_checkpoint': save_path})
                 print('Model saved at ', save_path)
