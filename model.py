@@ -169,6 +169,7 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
             loss_avg = loss_sum  # / counter
 
             test_batch_x, test_batch_y = data_manager.next_test_batch()
+
             wrong = 0
             correct = 0
 

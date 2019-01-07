@@ -122,12 +122,9 @@ class DataManager:
         :return: images and labels as numpy arrays. First dimension is equal to batch_size
         """
         if self.generator is not None:
-            # return self.train_provider.next_batch() if random.choice([True, False]) else self.generator.generate(self.batch_size)
-            if random.uniform(0, 1.0) < 0.01:
-                return [], []
-            else:
-                return self.generator.generate(self.batch_size)
-        return self.train_provider.next_batch()
+            return self.generator.generate(self.batch_size)
+        else:
+            return self.train_provider.next_batch()
 
     def next_test_batch(self):
         """

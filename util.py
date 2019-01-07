@@ -375,10 +375,12 @@ def get_file_type(path_to_file):
         sys.exit(0)
 
 
-def read_any_data(path_to_folder, imread_unchanged=False):
+def read_any_data(path_to_folder, imread_unchanged=False, settings=None):
     """
     Reads images (natively and from video) from given directory.
     :param path_to_folder: the directory containing the data.
+    :param imread_unchanged: if true, read image with all given channels (including alpha)
+    :param settings: transform data according to settings
     :return: the images as a numpy array
     """
     images = []
@@ -397,6 +399,8 @@ def read_any_data(path_to_folder, imread_unchanged=False):
                 image = cv2.imread(path_to_file)
             if len(np.shape(image)) < 3:
                 image = np.expand_dims(file, 2)
+            if settings is not None:
+                image = transform(image, settings)
             images.append(image)
         elif get_file_type(path_to_file) == 'video':
             sys.stdout.write('\rreading file (video) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
@@ -406,6 +410,8 @@ def read_any_data(path_to_folder, imread_unchanged=False):
                 image = video[i]
                 if len(np.shape(image)) < 3:
                     image = np.expand_dims(file, 2)
+                if settings is not None:
+                    image = transform(image, settings)
                 images.append(image)
         elif get_file_type(path_to_file) == 'subdirectory':
             sys.stdout.write('reading files from subdirectory ' + path_to_file + ' ..')
@@ -420,6 +426,30 @@ def read_any_data(path_to_folder, imread_unchanged=False):
     print("\ntotal number of images: " + str(len(images)))
     images = np.array(images)
     return images
+
+
+def transform(image, settings):
+    """
+    Transforms a given image to fit width, height and number of channels given by settings.
+    :param image: image to be transformed
+    :param settings: settings needed for the transformation
+    :return:
+    """
+    if len(np.shape(image)) < 3:
+        image = np.expand_dims(image, 2)
+
+    if np.shape(image)[2] == 1:
+        if settings.get_setting_by_name('channels') > 1:
+            print('ERROR: data is in gray scale, yet the model requires three input channels.')
+            print('No conversion from grayscale to color possible')
+            print('Aborting..')
+    elif np.shape(image)[2] == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if settings.get_setting_by_name('channels') == 1 else image
+    elif np.shape(image)[2] == 4:
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY, ) if settings.get_setting_by_name('channels') == 1 else image
+
+    image = cv2.resize(image, (settings.get_setting_by_name('height'), settings.get_setting_by_name('width')))
+    return image
 
 
 def read_video(path_to_video):
