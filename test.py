@@ -27,7 +27,7 @@ else:
     settings = Settings(None, restore_from_path=args.path_to_settings)
 
 if args.method == 'sliding_window':
-    path_to_test_data = util.get_necessary_test_data(args.data_dir_name, '.' + os.sep + 'data')
+    path_to_test_data = util.get_necessary_data(args.data_dir_name, '.' + os.sep + 'data')
     data = util.read_any_data(path_to_test_data)
     # data = [data[200], data[400], data[600], data[800], data[1000]]
 

@@ -84,27 +84,31 @@ def get_necessary_dataset(dataset_name, data_dir):
     return data_dir + os.sep + dataset_name + os.sep + 'train', data_dir + os.sep + dataset_name + os.sep + 'test'
 
 
-def get_necessary_test_data(test_data_name, data_dir):
+def get_necessary_data(data_name, data_dir):
     """
+    The only difference to get_necessary_data_set is that this method doesn't
+    expect the directory structure of train and test data.
     If data set is missing, download und unzip data set from cloud.
-    :param test_data_name: name of the test data.
+    :param data_name: name of the test data.
                          Choices: 'sliding_window' a list of videos for sliding window to be performed on.
     :param data_dir: the directory, to which the data set will be extracted
     :return: path to the training data directory and path to the test data directory
     """
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-    if not os.path.exists(data_dir + os.sep + test_data_name):
+    if not os.path.exists(data_dir + os.sep + data_name):
         print('Downloading..')
-        if test_data_name == 'sliding_window':
+        if data_name == 'sliding_window':
             download_file_from_google_drive('1NNHMEyL-2of-SdpXprXAQW9PJJ10g6_j', data_dir + os.sep + 'data.zip')
+        elif data_name == 'signs_clean':
+            download_file_from_google_drive('10LsjJM56uOBy7xtrl3Ey8hJ0qnSp_9cx', data_dir + os.sep + 'data.zip')
         print('Unzipping..')
         zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
         zip_ref.extractall(data_dir)
         zip_ref.close()
         print('Deleting zip..')
         os.remove(data_dir + os.sep + 'data.zip')
-    return data_dir + os.sep + test_data_name
+    return data_dir + os.sep + data_name
 
 
 def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance='False'):
@@ -375,15 +379,17 @@ def get_file_type(path_to_file):
         sys.exit(0)
 
 
-def read_any_data(path_to_folder, imread_unchanged=False, settings=None):
+def read_any_data(path_to_folder, imread_unchanged=False, settings=None, return_filenames=False):
     """
     Reads images (natively and from video) from given directory.
     :param path_to_folder: the directory containing the data.
     :param imread_unchanged: if true, read image with all given channels (including alpha)
     :param settings: transform data according to settings
+    :param return_filenames: returns names of all files read in an additional array
     :return: the images as a numpy array
     """
     images = []
+    names = []
     counter = 0
 
     listdir = os.listdir(path_to_folder)
@@ -401,11 +407,13 @@ def read_any_data(path_to_folder, imread_unchanged=False, settings=None):
                 image = np.expand_dims(file, 2)
             if settings is not None:
                 image = transform(image, settings)
+            names.append(path_to_file.split(os.sep)[-1])
             images.append(image)
         elif get_file_type(path_to_file) == 'video':
             sys.stdout.write('\rreading file (video) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
             sys.stdout.flush()
             video = read_video(path_to_file)
+            names.append(path_to_file.split(os.sep)[-1])
             for i in range(len(video)-1):
                 image = video[i]
                 if len(np.shape(image)) < 3:
@@ -416,7 +424,11 @@ def read_any_data(path_to_folder, imread_unchanged=False, settings=None):
         elif get_file_type(path_to_file) == 'subdirectory':
             sys.stdout.write('reading files from subdirectory ' + path_to_file + ' ..')
             sys.stdout.flush()
-            subdirectory_images = read_any_data(path_to_file)
+            subdirectory_images = read_any_data(path_to_file, imread_unchanged, settings, return_filenames)
+            if return_filenames:
+                subdirectory_images, subdirectory_names = read_any_data(path_to_file, imread_unchanged, settings, return_filenames)
+                for name in subdirectory_names:
+                    names.append(name)
             for image in subdirectory_images:
                 images.append(image)
         else:
@@ -425,7 +437,10 @@ def read_any_data(path_to_folder, imread_unchanged=False, settings=None):
 
     print("\ntotal number of images: " + str(len(images)))
     images = np.array(images)
-    return images
+    if return_filenames:
+        return images, names
+    else:
+        return images
 
 
 def transform(image, settings):

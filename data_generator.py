@@ -1,4 +1,7 @@
+import os
 import random
+import sys
+
 import cv2
 import util
 from PIL import Image
@@ -15,9 +18,13 @@ class Generator:
     TODO: normalize
     TODO: fix random bug where cropping messes up the image
     """
-    def __init__(self, settings, path_to_background, path_to_foreground):
+    def __init__(self, settings, path_to_background=None, path_to_foreground=None):
         self.settings = settings
-        self.foreground = util.read_any_data(path_to_foreground, imread_unchanged=True)
+        if path_to_background is None or not os.path.exists(path_to_background):
+            path_to_background = util.get_necessary_data('sliding_window', settings.data_path_from_root)
+        if path_to_foreground is None or not os.path.exists(path_to_foreground):
+            path_to_foreground = util.get_necessary_data('signs_clean', settings.data_path_from_root)
+        self.foreground, self.class_names = util.read_any_data(path_to_foreground, imread_unchanged=True, return_filenames=True)
         self.background = util.read_any_data(path_to_background)
         self.color = True if settings.get_setting_by_name('channels') > 1 else False
         self.max_batches_per_epoch = settings.get_setting_by_name('maximum_artificial_batches_per_epoch')
@@ -57,6 +64,9 @@ class Generator:
         else:
             self.batch_counter += 1
         return samples, labels
+
+    def get_class_names(self):
+        return self.class_names
 
 
 def sample_image(bg, fg, x, y, scale, skew, crop_delta):

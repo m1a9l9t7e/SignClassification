@@ -141,8 +141,11 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
             else:
                 saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
 
+        class_names_test = settings.get_setting_by_name('class_names_test')
+        class_names_model = settings.get_setting_by_name('class_names')
         min_cost = -1
         no_improvement_counter = 0
+        test_accuracy = 0
         max_accuracy = 0
         for epoch in range(n_epochs):
             loss_sum = 0
@@ -174,22 +177,27 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
             correct = 0
 
             # ===== TEST =====
-            while len(test_batch_x) != 0:
-                test_prediction, _loss = sess.run([prediction, loss], feed_dict={x: test_batch_x, y: test_batch_y})
-                for i in range(np.shape(test_batch_y)[0]):
-                    if np.argmax(test_batch_y[i]) == np.argmax(test_prediction[i]):
-                        correct += 1
-                        if show_test and (epoch + 1) % 10 == 0:
-                            cv2.imshow('correct', test_batch_x[i])
-                            cv2.waitKey(0)
-                    else:
-                        wrong += 1
-                        if show_test and (epoch + 1) % 10 == 0:
-                            cv2.imshow('wrong', test_batch_x[i])
-                            cv2.waitKey(0)
-                test_batch_x, test_batch_y = data_manager.next_test_batch()
-            test_accuracy = 100 * correct / (wrong + correct)
-            test_accuracy_print = 'test accuracy: ' + str(round(test_accuracy, 2)) + '%'
+            if class_names_test is None or class_names_test[0] is None:
+                test_accuracy += 1
+                test_accuracy_print = ' no test data...'
+            else:
+                while len(test_batch_x) != 0:
+                    test_prediction = sess.run(prediction, feed_dict={x: test_batch_x})
+                    for i in range(np.shape(test_batch_y)[0]):
+                        if class_names_test[np.argmax(test_batch_y[i])] == class_names_model[np.argmax(test_prediction[i])]:
+                            correct += 1
+                            if show_test and (epoch + 1) % 10 == 0:
+                                cv2.imshow('correct', test_batch_x[i])
+                                cv2.waitKey(0)
+                        else:
+                            wrong += 1
+                            if show_test and (epoch + 1) % 10 == 0:
+                                cv2.imshow('wrong', test_batch_x[i])
+                                cv2.waitKey(0)
+                    test_batch_x, test_batch_y = data_manager.next_test_batch()
+                test_accuracy = 100 * correct / (wrong + correct)
+                test_accuracy_print = 'test accuracy: ' + str(round(test_accuracy, 2)) + '%'
+
             train_info = 'Epoch ' + str(epoch + 1) + ' / ' + str(n_epochs) + ' cost: ' + str(round(loss_avg, 3))
 
             # === PRINT EVAL ===

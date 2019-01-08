@@ -12,8 +12,8 @@ from settings import Settings
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--epoch', dest='epoch', type=int, default=100)
-parser.add_argument('--batch_size', dest='batch_size', type=int, default=100)
+parser.add_argument('--epoch', dest='epoch', type=int, default=20)
+parser.add_argument('--batch_size', dest='batch_size', type=int, default=16)
 parser.add_argument('--height', dest='height', type=int, default=32)
 parser.add_argument('--width', dest='width', type=int, default=32)
 parser.add_argument('--channels', dest='channels', type=int, default=3)
@@ -36,14 +36,13 @@ parser.add_argument('--no-train', dest='train', action='store_false', default=Tr
 parser.add_argument('--freeze', dest='freeze', action='store_true', default=False)
 parser.add_argument('--execute', dest='execute', action='store_true', default=False)
 parser.add_argument('--artificial_data', dest='use_artificial_training_data', action='store_true', default=False)
-parser.add_argument('--background', dest='path_to_background_data', type=str, default='', help='Path to directory containing videos or images use in the generation of artificial data')
-parser.add_argument('--foreground', dest='path_to_foreground_data', type=str, default='')
+parser.add_argument('--background', dest='path_to_background_data', type=str, default=None, help='Path to dir with vids/imgs used in the generation of artificial data')
+parser.add_argument('--foreground', dest='path_to_foreground_data', type=str, default=None)
 parser.add_argument('--max_artificial_per_epoch', dest='maximum_artificial_batches_per_epoch', type=int, default=50)
 
 
 args = parser.parse_args()
-
-train_path, test_path = util.get_necessary_dataset(args.dataset_name, '.' + os.sep + 'data')
+train_path, test_path = util.get_necessary_dataset(args.dataset_name, Settings.data_path_from_root)
 
 if args.augment_dataset:
     util.augment_data(scalar=args.augment_scalar, path_to_data=train_path, path_to_index=util.get_index(train_path), balance=False)

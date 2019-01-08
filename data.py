@@ -40,7 +40,7 @@ class DataManager:
 
         if not (len(classes_train) <= 1 or len(classes_test) <= 1):  # either test or train data was not found
             if len(classes_train) != len(classes_test):
-                print("number of classes of train and test set don't match!")
+                print("ERROR: number of classes of train and test set don't match!")
                 sys.exit(0)
             else:
                 settings.update({'num_classes': len(classes_train)})
@@ -49,9 +49,19 @@ class DataManager:
                         print('ERROR: train and test classes don\'t match.')
                         sys.exit(0)
             settings.update({'class_names': classes_train})
+            settings.update({'class_names_test': classes_test})
 
         if settings.get_setting_by_name('use_artificial_training_data'):
             self.generator = Generator(settings, settings.get_setting_by_name('path_to_background_data'), settings.get_setting_by_name('path_to_foreground_data'))
+            generator_class_names = self.generator.get_class_names()
+            settings.update({'class_names': generator_class_names})
+            settings.update({'num_classes': len(generator_class_names)})
+            if len(generator_class_names) != len(classes_train):
+                print('Warning: classes in training set and artificial data don\'t match! This will lead to inconsistent class labels.')
+                print('You should also make sure that class names match!')
+                print('Aborting.')
+                # TODO: make distinction between mixed training and pure artificial. In case of mixed, stop trainign if artif and trainset data classes don't match
+                # sys.exit(0)
         else:
             self.generator = None
 

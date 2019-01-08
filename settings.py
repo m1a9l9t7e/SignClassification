@@ -13,6 +13,7 @@ class Settings:
     save_path_from_model_root = os.sep+'saves'+os.sep
     logs_path_from_model_root = os.sep+'logs'+os.sep
     output_path_from_model_root = os.sep+'output'+os.sep
+    data_path_from_root = '.' + os.sep + 'data'
     settings = []
 
     def __init__(self, arg_dict, restore_from_path=None):
@@ -204,20 +205,6 @@ class Settings:
             print('ERROR: invalid restore type chosen.')
             print('Aborting.')
             sys.exit(0)
-        if self.get_setting_by_name('use_artificial_training_data'):
-            if not os.path.exists(self.get_setting_by_name('path_to_background_data')):
-                print('WARNING: use artificial training data is enabled, but no path to background data was given, or path does not exist (--background)')
-                print('Aborting.')
-                sys.exit(0)
-            if not os.path.exists(self.get_setting_by_name('path_to_foreground_data')):
-                print('WARNING: use artificial training data is enabled, but no path to foreground data was given, or path does not exist (--foreground)')
-                print('Aborting.')
-                sys.exit(0)
-            if len(os.listdir(self.get_setting_by_name('path_to_foreground_data'))) != len(os.listdir(self.get_setting_by_name('train_data_dir'))):
-                print('ERROR: classes in training set and artificial data don\'t match! This will lead to inconsistent class labels.')
-                print('You should also make sure that class names match!')
-                print('Aborting.')
-                sys.exit(0)
         self.update({'input_checkpoint': input_checkpoint})
 
 
