@@ -154,6 +154,10 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
             wrong = 0
             batch_x, batch_y = data_manager.next_batch()
 
+            # for image in batch_x:
+            #     cv2.imshow('win', image)
+            #     cv2.waitKey(0)
+
             # ===== TRAIN =====
             while len(batch_x) != 0:
                 _prediction, _, c, summary = sess.run([prediction, optimizer, loss, merged_summary_op],
@@ -171,10 +175,9 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
             train_accuracy_print = 'train accuracy: ' + str(round(train_accuracy, 2)) + '%'
             loss_avg = loss_sum  # / counter
 
-            test_batch_x, test_batch_y = data_manager.next_test_batch()
-
-            wrong = 0
             correct = 0
+            wrong = 0
+            test_batch_x, test_batch_y = data_manager.next_test_batch()
 
             # ===== TEST =====
             if class_names_test is None or class_names_test[0] is None:

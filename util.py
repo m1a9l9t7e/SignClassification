@@ -407,13 +407,13 @@ def read_any_data(path_to_folder, imread_unchanged=False, settings=None, return_
                 image = np.expand_dims(file, 2)
             if settings is not None:
                 image = transform(image, settings)
-            names.append(path_to_file.split(os.sep)[-1])
+            names.append((path_to_file.split(os.sep)[-1]).split('.')[0])
             images.append(image)
         elif get_file_type(path_to_file) == 'video':
             sys.stdout.write('\rreading file (video) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
             sys.stdout.flush()
             video = read_video(path_to_file)
-            names.append(path_to_file.split(os.sep)[-1])
+            names.append((path_to_file.split(os.sep)[-1]).split('.')[0])
             for i in range(len(video)-1):
                 image = video[i]
                 if len(np.shape(image)) < 3:

@@ -56,7 +56,8 @@ class Settings:
             # self.load(settings_path)
             # TODO check if self.settings and settings_copy equal, if not overwrite
             # return
-            input('WARNING: This will overwriting existing settings!\nIf you want to continue, press any key. Otherwise, abort the program.')
+            # input('WARNING: This will overwriting existing settings!\nIf you want to continue, press any key. Otherwise, abort the program.')
+            print('Overwriting settings')
 
         settings_print = []
         for settings_item in self.settings:

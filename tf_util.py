@@ -117,7 +117,6 @@ def execute_frozen_model(settings, batch_provider):
                 print('Predictions: ')
                 for k in range(len(indicees)):
                     print(str(k + 1) + '. ', _class_names[k], ' with a confidence of ', np.round(classes[k], 2))
-                print('\n')
 
                 if len(batch_y) > j:
                     print('correct class: ', batch_provider.class_names[np.argmax(batch_y[j])])
@@ -127,6 +126,7 @@ def execute_frozen_model(settings, batch_provider):
                         wrong += 1
                 cv2.imshow('image', batch_x[j])
                 cv2.waitKey(0)
+                print('\n')
 
             batch_x, batch_y = batch_provider.next_batch()
     print('Execution finished.')

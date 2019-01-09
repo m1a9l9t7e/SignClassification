@@ -52,7 +52,8 @@ class DataManager:
             settings.update({'class_names_test': classes_test})
 
         if settings.get_setting_by_name('use_artificial_training_data'):
-            self.generator = Generator(settings, settings.get_setting_by_name('path_to_background_data'), settings.get_setting_by_name('path_to_foreground_data'))
+            self.generator = Generator(settings, random_colors=True, path_to_background=settings.get_setting_by_name('path_to_background_data'),
+                                       path_to_foreground=settings.get_setting_by_name('path_to_foreground_data'))
             generator_class_names = self.generator.get_class_names()
             settings.update({'class_names': generator_class_names})
             settings.update({'num_classes': len(generator_class_names)})
