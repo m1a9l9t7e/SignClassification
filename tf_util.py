@@ -48,7 +48,7 @@ def freeze_graph(settings, output_dir=None):
             f.write(output_graph_def.SerializeToString())
         print(len(output_graph_def.node), ' ops in the final graph')
         print('Frozen graph saved at ', output_filename)
-        settings.update({'frozen_model_save_path': os.path.abspath(output_filename)})
+        settings.update({'frozen_model_save_path': output_filename})
 
     return output_graph_def
 

@@ -11,7 +11,8 @@ from PIL import Image
 import requests
 from shutil import copyfile
 import numpy as np
-
+import httplib2
+import apiclient
 
 def arrange_data_into_class_folders(src_dir, out_dir, path_to_annotations):
     """
@@ -110,6 +111,46 @@ def get_necessary_data(data_name, data_dir):
         os.remove(data_dir + os.sep + 'data.zip')
     return data_dir + os.sep + data_name
 
+
+def get_latest_model():
+    """
+    Download latest model from google drive
+    :return: path to settings included in download
+    """
+    destination = "."
+    try:
+        print('Downloading..')
+        download_file_from_google_drive('TODO',  destination + os.sep + 'data.zip')
+        print('Unzipping..')
+        zip_ref = zipfile.ZipFile(destination + os.sep + 'data.zip', 'r')
+        zip_ref.extractall(destination)
+        zip_ref.close()
+        print('Deleting zip..')
+        os.remove(destination + os.sep + 'data.zip')
+
+    except:
+        print('Download of latest model failed.')
+
+
+def export_model_to_production(settings, output_path, overwrite=True, upload_to_drive=False):
+    path_to_frozen = settings.get_setting_by_name('frozen_model_save_path')
+    if os.path.exists(output_path):
+        if overwrite:
+            shutil.rmtree(output_path)
+        else:
+            print('ERROR: model can\'t be exorted to ', output_path, ' as this directory already exists.')
+            print('Either move/delete this folder or set overwrite flag to true in export_model_to_production function call')
+            print('Aborting')
+            sys.exit(0)
+    os.mkdir(output_path)
+
+    settings.update({'frozen_model_save_path': 'TODO'})
+
+def find_settings(path):
+    listdir = os.listdir(path)
+    for item in listdir:
+        if os.path.isdir(item):
+            find_settings(item)
 
 def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance='False'):
     """
