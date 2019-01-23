@@ -1,3 +1,5 @@
+import datetime
+
 import PIL
 
 import cv2
@@ -11,8 +13,10 @@ from PIL import Image
 import requests
 from shutil import copyfile
 import numpy as np
-import httplib2
-import apiclient
+from datetime import datetime
+
+from settings import Settings
+
 
 def arrange_data_into_class_folders(src_dir, out_dir, path_to_annotations):
     """
@@ -60,7 +64,7 @@ def get_necessary_dataset(dataset_name, data_dir):
     """
     If data set is missing, download und unzip data set from cloud.
     :param dataset_name: name of the data set.
-                         Choices: 'isf' (Custom Image Set ISF Löwen) or 'gtsrb' (German Traffic Sign Recognition Benchmark)
+                         Choices: 'isf' (Custom Image Set ISF Loewen) or 'gtsrb' (German Traffic Sign Recognition Benchmark)
     :param data_dir: the directory, to which the data set will be extracted
     :return: path to the training data directory and path to the test data directory
     """
@@ -119,40 +123,98 @@ def get_latest_model():
     Download latest model from google drive
     :return: path to settings included in download
     """
-    destination = "."
-    try:
-        print('Downloading..')
-        download_file_from_google_drive('TODO',  destination + os.sep + 'data.zip')
-        print('Unzipping..')
-        zip_ref = zipfile.ZipFile(destination + os.sep + 'data.zip', 'r')
-        zip_ref.extractall(destination)
-        zip_ref.close()
-        print('Deleting zip..')
-        os.remove(destination + os.sep + 'data.zip')
-
-    except:
-        print('Download of latest model failed.')
-
-
-def export_model_to_production(settings, output_path, overwrite=True, upload_to_drive=False):
-    path_to_frozen = settings.get_setting_by_name('frozen_model_save_path')
-    if os.path.exists(output_path):
-        if overwrite:
-            shutil.rmtree(output_path)
+    path_to_import = '.'+os.sep+Settings.export_dir_name
+    if not internet_on():
+        print('No internet connection.')
+        if not os.path.exists(path_to_import):
+            print('No sign-classification model has been downloaded. Please connect to internet and try again!')
+            sys.exit(1)
         else:
-            print('ERROR: model can\'t be exorted to ', output_path, ' as this directory already exists.')
+            print('Using last downloaded sign-classification model..')
+            settings = Settings(None, restore_from_path=path_to_import+os.sep+'settings.txt')
+            settings.update({'frozen_model_save_path': os.path.abspath('.'+os.sep+settings.export_dir_name+os.sep+'inference.pb')})
+            file = open(path_to_import+os.sep+'time_of_export.txt', 'r')
+            time = file.readlines()[0]
+            print('Model last updated on ', time)
+            return settings
+    elif os.path.exists(path_to_import):
+        file = open(path_to_import + os.sep + 'time_of_export.txt', 'r')
+        previous_time = file.readlines()[0]
+        print('Sign-classification model found, checking for updates..')
+    else:
+        print('No model has been downloaded.')
+        print('Downloading latest sign-classification model..')
+        previous_time = None
+
+    download_file_from_google_drive('1YJ-WpXe8PBt_1weDhK84xVi-37p736j6', 'data.zip')
+    zip_ref = zipfile.ZipFile('data.zip', 'r')
+    zip_ref.extractall(path_to_import)
+    zip_ref.close()
+    os.remove('data.zip')
+    settings = Settings(None, restore_from_path=path_to_import + os.sep + 'settings.txt')
+    settings.update({'frozen_model_save_path': os.path.abspath('.' + os.sep + settings.export_dir_name + os.sep + 'inference.pb')})
+    file = open(path_to_import + os.sep + 'time_of_export.txt', 'r')
+    time = file.readlines()[0]
+
+    if previous_time is None:
+        print('Latest model downloaded successfully. Model was uploaded to drive on ', time)
+    elif datetime.strptime(time, "%Y-%m-%d %H:%M:%S.%f") > datetime.strptime(previous_time, "%Y-%m-%d %H:%M:%S.%f"):
+        print('Update found. Latest model from was uploaded to drive on ', time)
+
+    return settings
+
+
+def export_model_to_production(settings, export_path=None, overwrite=True, upload_to_drive=False):
+    if export_path is None:
+        export_path = settings.get_output_path() + settings.export_dir_name
+
+    if os.path.exists(export_path):
+        if overwrite:
+            shutil.rmtree(export_path)
+        else:
+            print('ERROR: model can\'t be exorted to ', export_path, ' as this directory already exists.')
             print('Either move/delete this folder or set overwrite flag to true in export_model_to_production function call')
             print('Aborting')
             sys.exit(0)
-    os.mkdir(output_path)
 
-    settings.update({'frozen_model_save_path': 'TODO'})
+    path_to_frozen = settings.get_setting_by_name('frozen_model_save_path')
+    path_to_settings = settings.settings_path
+
+    new_path_to_frozen = export_path + os.sep + 'inference.pb'
+    new_path_to_settings = export_path + os.sep + 'settings.txt'
+
+    settings.update({'frozen_model_save_path': '.'+os.sep+settings.export_dir_name+os.sep+'inference.pb'})
+    settings.save()
+
+    os.mkdir(export_path)
+    shutil.move(path_to_frozen, new_path_to_frozen)
+    shutil.move(path_to_settings, new_path_to_settings)
+    time_of_export_file = export_path + os.sep + 'time_of_export.txt'
+    file = open(time_of_export_file, 'w')
+    file.writelines([datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")])
+    file.close()
+
+    shutil.make_archive(export_path, 'zip', settings.get_output_path(), settings.export_dir_name)
+    # shutil.rmtree(export_path)
+    print('Model exported to ', export_path + '.zip')
+    return new_path_to_settings
+
+
+def internet_on():
+    try:
+        download_file_from_google_drive('1ZqDmnSt8oRbHgd7CoXsu9CYfoKusKjYK', 'hi.txt')
+        os.remove('hi.txt')
+        return True
+    except SystemError as err:
+        return False
+
 
 def find_settings(path):
     listdir = os.listdir(path)
     for item in listdir:
         if os.path.isdir(item):
             find_settings(item)
+
 
 def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance='False'):
     """
@@ -183,14 +245,14 @@ def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance
         original_distribution.append(len(list_dir))
         moved_dirs.append(moved_path)
 
-    # count artificially added images
+    # count syntheticly added images
     subdirs = list(os.walk(path_to_data))[0][1]
-    artificial_distribution = []
+    synthetic_distribution = []
     dirs = []
     for i in range(len(moved_subdirs)):
         path = os.path.join(path_to_data, subdirs[i])
         list_dir = os.listdir(path)
-        artificial_distribution.append(len(list_dir))
+        synthetic_distribution.append(len(list_dir))
         dirs.append(path)
 
     max_samples = max(original_distribution)
@@ -203,11 +265,11 @@ def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance
 
         if balance:
             if min_samples * scalar < max_samples:
-                samples = max_samples - artificial_distribution[i] - original_distribution[i]
+                samples = max_samples - synthetic_distribution[i] - original_distribution[i]
             else:
-                samples = min_samples * scalar - artificial_distribution[i] - original_distribution[i]
+                samples = min_samples * scalar - synthetic_distribution[i] - original_distribution[i]
         else:
-            samples = original_distribution[i] * scalar - original_distribution[i] - artificial_distribution[i]
+            samples = original_distribution[i] * scalar - original_distribution[i] - synthetic_distribution[i]
 
         if samples > 0:
             # setup pipeline
@@ -219,14 +281,14 @@ def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance
             pipeline.sample(int(samples))
             samples_counter += samples
         elif samples < 0:
-            artificial_images = os.listdir(os.path.abspath(path))
-            print(artificial_images)
+            synthetic_images = os.listdir(os.path.abspath(path))
+            print(synthetic_images)
             while samples < 0:
-                os.remove(os.path.join(os.path.abspath(path), artificial_images[0]))
-                if len(artificial_images) == 0:
+                os.remove(os.path.join(os.path.abspath(path), synthetic_images[0]))
+                if len(synthetic_images) == 0:
                     break
                 else:
-                    artificial_images = artificial_images[1:]
+                    synthetic_images = synthetic_images[1:]
                     samples += 1
                     samples_counter -= 1
 
@@ -417,9 +479,9 @@ def get_file_type(path_to_file):
     elif os.path.isdir(path_to_file):
         return 'subdirectory'
     else:
-        print('ERROR: unsupported file type: .', extension)
-        print('aborting')
-        sys.exit(0)
+        print('Warning: unsupported file type: .', extension)
+        # print('aborting')
+        # sys.exit(0)
 
 
 def read_any_data(path_to_folder, imread_unchanged=False, settings=None, return_filenames=False):
@@ -475,7 +537,7 @@ def read_any_data(path_to_folder, imread_unchanged=False, settings=None, return_
             for image in subdirectory_images:
                 images.append(image)
         else:
-            print('that\'s impossible!')
+            print('skipping file')
         counter += 1
 
     print("\ntotal number of images: " + str(len(images)))
@@ -573,6 +635,7 @@ def sliding_window(settings, image, window_width, window_height, stride):
         x_iter += 1
 
     return windows
+
 
 def merge_images(bg, fg, x, y):
     bg_height = np.shape(bg)[0]

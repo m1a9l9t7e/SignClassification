@@ -35,10 +35,10 @@ parser.add_argument('--settings', dest='path_to_settings', type=str, default=Non
 parser.add_argument('--no-train', dest='train', action='store_false', default=True)
 parser.add_argument('--freeze', dest='freeze', action='store_true', default=False)
 parser.add_argument('--execute', dest='execute', action='store_true', default=False)
-parser.add_argument('--artificial_data', dest='use_artificial_training_data', action='store_true', default=False)
-parser.add_argument('--background', dest='path_to_background_data', type=str, default=None, help='Path to dir with vids/imgs used in the generation of artificial data')
+parser.add_argument('--synthetic_data', dest='use_synthetic_training_data', action='store_true', default=False)
+parser.add_argument('--background', dest='path_to_background_data', type=str, default=None, help='Path to dir with vids/imgs used in the generation of synthetic data')
 parser.add_argument('--foreground', dest='path_to_foreground_data', type=str, default=None)
-parser.add_argument('--max_artificial_per_epoch', dest='maximum_artificial_batches_per_epoch', type=int, default=50)
+parser.add_argument('--max_synthetic_per_epoch', dest='maximum_synthetic_batches_per_epoch', type=int, default=50)
 
 
 args = parser.parse_args()
@@ -68,10 +68,10 @@ if args.path_to_settings is None:
         'output_node_name': args.output_node_name,
         'train_data_dir': train_path,
         'test_data_dir': test_path,
-        'use_artificial_training_data': args.use_artificial_training_data,
+        'use_synthetic_training_data': args.use_synthetic_training_data,
         'path_to_background_data': args.path_to_background_data,
         'path_to_foreground_data': args.path_to_foreground_data,
-        'maximum_artificial_batches_per_epoch': args.maximum_artificial_batches_per_epoch
+        'maximum_synthetic_batches_per_epoch': args.maximum_synthetic_batches_per_epoch
     })
 else:
     settings = Settings(None, restore_from_path=args.path_to_settings)

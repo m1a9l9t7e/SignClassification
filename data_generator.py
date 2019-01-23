@@ -13,7 +13,7 @@ from math import pi
 class Generator:
 
     """
-    This class serves to generate artificial training images to enhance the training process
+    This class serves to generate synthetic training images to enhance the training process
     TODO: simulate lighting
     TODO: normalize
     TODO: fix random bug where cropping messes up the image
@@ -27,7 +27,7 @@ class Generator:
         self.foreground, self.class_names = util.read_any_data(path_to_foreground, imread_unchanged=True, return_filenames=True)
         self.background = util.read_any_data(path_to_background)
         self.color = True if settings.get_setting_by_name('channels') > 1 else False
-        self.max_batches_per_epoch = settings.get_setting_by_name('maximum_artificial_batches_per_epoch')
+        self.max_batches_per_epoch = settings.get_setting_by_name('maximum_synthetic_batches_per_epoch')
         self.random_colors = random_colors
         self.batch_counter = 0
 

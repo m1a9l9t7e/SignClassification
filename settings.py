@@ -14,6 +14,7 @@ class Settings:
     logs_path_from_model_root = os.sep+'logs'+os.sep
     output_path_from_model_root = os.sep+'output'+os.sep
     data_path_from_root = '.' + os.sep + 'data'
+    export_dir_name = 'export'
     settings = []
 
     def __init__(self, arg_dict, restore_from_path=None):
@@ -34,6 +35,7 @@ class Settings:
             self.save(check_overwrite=True)
         else:
             self.load(restore_from_path)
+            self.settings_path = restore_from_path
 
     def save(self, update=False, check_overwrite=False):
         """
@@ -129,13 +131,13 @@ class Settings:
                 return settings_item.value
         return None
 
-    def print(self):
-        """
-        Prints data and metadata about all current settings
-        :return: void
-        """
-        for setting in self.settings:
-            print(setting)
+    # def print(self):
+    #     """
+    #     Prints data and metadata about all current settings
+    #     :return: void
+    #     """
+    #     for setting in self.settings:
+    #         print(setting)
 
     def get_save_path(self):
         return self.models_path + self.get_setting_by_name('model_name') + self.save_path_from_model_root

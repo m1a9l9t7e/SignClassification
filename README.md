@@ -1,3 +1,11 @@
+To run this project the following packages have to be installed:
+
+python-opencv
+Pillow
+Augmentor
+ascii-graph
+httpsproxy-urllib2
+
 # sign-classification
 Dynamic implementation of a neural network for image classification in tensorflow from scratch.
 
@@ -25,6 +33,6 @@ Train using transfer learning where cnn and dnn are transfered/locked:
 
 --data isf --channels 1 --model transfer --restore transfer --lock cnn-dnn --restore_argument ./models/gtsrb/saves/epoch53.ckpt --epoch 200
 
-Train with artificial data:
+Train with synthetic data:
 
---artificial_data --background ./data/sliding_window --foreground ./data/signs_clean --model artificial-test --width 64 --height 64 --freeze --epoch 20 --execute --channels 1
+--synthetic_data --background ./data/sliding_window --foreground ./data/signs_clean --model synthetic-test --width 64 --height 64 --freeze --epoch 20 --execute --channels 1

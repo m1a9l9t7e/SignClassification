@@ -16,11 +16,14 @@ warnings.filterwarnings("ignore")
 parser = argparse.ArgumentParser()
 parser.add_argument('--data', dest='data_dir_name', default='sliding_window')
 parser.add_argument('--method', dest='method', default='regular', choices=['sliding_window', 'regular', 'regular-no-labels'])
+parser.add_argument('--auto', dest='auto', action='store_true', default=False)
 parser.add_argument('--settings', dest='path_to_settings', type=str, default=None)
 
 args = parser.parse_args()
 
-if args.path_to_settings is None:
+if args.auto:
+    settings = util.get_latest_model()
+elif args.path_to_settings is None:
     print('ERROR: need settings to load model from!')
     sys.exit(0)
 else:
