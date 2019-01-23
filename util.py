@@ -70,6 +70,8 @@ def get_necessary_dataset(dataset_name, data_dir):
         print('Downloading..')
         if dataset_name == 'isf':
             download_file_from_google_drive('1Xvw7w3XKNLPWwfCZMKordtS7c-sIc_cs', data_dir + os.sep + 'data.zip')
+        if dataset_name == 'isf-new':
+            download_file_from_google_drive('1cD7n4HDnxbISMuFJGc6d8j7Cnqk8_6vT', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'gtsrb':
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':

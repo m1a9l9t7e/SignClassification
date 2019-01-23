@@ -40,19 +40,19 @@ class DataManager:
 
         if not (len(classes_train) <= 1 or len(classes_test) <= 1):  # either test or train data was not found
             if len(classes_train) != len(classes_test):
-                print("ERROR: number of classes of train and test set don't match!")
-                sys.exit(0)
+                print("Warning: number of classes of train and test set don't match!")
+                # sys.exit(0)
             else:
-                settings.update({'num_classes': len(classes_train)})
                 for i in range(len(classes_train)):
                     if classes_train[i] != classes_test[i]:
                         print('ERROR: train and test classes don\'t match.')
                         sys.exit(0)
+            settings.update({'num_classes': len(classes_train)})
             settings.update({'class_names': classes_train})
             settings.update({'class_names_test': classes_test})
 
         if settings.get_setting_by_name('use_artificial_training_data'):
-            self.generator = Generator(settings, random_colors=True, path_to_background=settings.get_setting_by_name('path_to_background_data'),
+            self.generator = Generator(settings, random_colors=False, path_to_background=settings.get_setting_by_name('path_to_background_data'),
                                        path_to_foreground=settings.get_setting_by_name('path_to_foreground_data'))
             generator_class_names = self.generator.get_class_names()
             settings.update({'class_names': generator_class_names})

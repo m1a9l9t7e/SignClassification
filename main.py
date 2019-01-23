@@ -22,7 +22,7 @@ parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, defaul
 parser.add_argument('--dropout', dest='dropout_probability', type=float, default=1.0)
 parser.add_argument('--batch_norm', dest='batch_norm', type=bool, default=False, choices=[True, False])
 parser.add_argument('--model', dest='model_name', default=datetime.datetime.now().strftime("%I_%M%p_on_%B_%d,_%Y"))
-parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['gtsrb', 'isf', 'mnist'])
+parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['isf', 'isf-new', 'gtsrb', 'mnist'])
 parser.add_argument('--augment', dest='augment_dataset', type=bool, default=False, choices=[True, False])
 parser.add_argument('--augment_scalar', dest='augment_scalar', type=float, default=2.0)
 parser.add_argument('--restore', dest='restore_type', default='auto', choices=['auto', 'by_name', 'path', 'transfer'])
