@@ -43,7 +43,7 @@ parser.add_argument('--max_synthetic_per_epoch', dest='maximum_synthetic_batches
 
 args = parser.parse_args()
 train_path, test_path = util.get_necessary_dataset(args.dataset_name, Settings.data_path_from_root)
-path_to_settings = util.get_latest_model()
+path_to_settings = util.import_latest_model()
 
 if args.augment_dataset:
     util.augment_data(scalar=args.augment_scalar, path_to_data=train_path, path_to_index=util.get_index(train_path), balance=False)

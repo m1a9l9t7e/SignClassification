@@ -118,12 +118,13 @@ def get_necessary_data(data_name, data_dir):
     return data_dir + os.sep + data_name
 
 
-def get_latest_model():
+def import_latest_model(import_path='.'):
     """
-    Download latest model from google drive
-    :return: path to settings included in download
+    Download latest model from google drive.
+    If device is not connected to internet, previously downloaded models will be used, if available.
+    :return: Settings of model
     """
-    path_to_import = '.'+os.sep+Settings.export_dir_name
+    path_to_import = import_path+os.sep+Settings.import_dir_name
     if not internet_on():
         print('No internet connection.')
         if not os.path.exists(path_to_import):
@@ -131,11 +132,11 @@ def get_latest_model():
             sys.exit(1)
         else:
             print('Using last downloaded sign-classification model..')
-            settings = Settings(None, restore_from_path=path_to_import+os.sep+'settings.txt')
-            settings.update({'frozen_model_save_path': os.path.abspath('.'+os.sep+settings.export_dir_name+os.sep+'inference.pb')})
             file = open(path_to_import+os.sep+'time_of_export.txt', 'r')
             time = file.readlines()[0]
             print('Model last updated on ', time)
+            settings = Settings(None, restore_from_path=path_to_import+os.sep+'settings.txt')
+            settings.update({'frozen_model_save_path': os.path.abspath(path_to_import+os.sep+'inference.pb')})
             return settings
     elif os.path.exists(path_to_import):
         file = open(path_to_import + os.sep + 'time_of_export.txt', 'r')
@@ -151,8 +152,6 @@ def get_latest_model():
     zip_ref.extractall(path_to_import)
     zip_ref.close()
     os.remove('data.zip')
-    settings = Settings(None, restore_from_path=path_to_import + os.sep + 'settings.txt')
-    settings.update({'frozen_model_save_path': os.path.abspath('.' + os.sep + settings.export_dir_name + os.sep + 'inference.pb')})
     file = open(path_to_import + os.sep + 'time_of_export.txt', 'r')
     time = file.readlines()[0]
 
@@ -160,6 +159,11 @@ def get_latest_model():
         print('Latest model downloaded successfully. Model was uploaded to drive on ', time)
     elif datetime.strptime(time, "%Y-%m-%d %H:%M:%S.%f") > datetime.strptime(previous_time, "%Y-%m-%d %H:%M:%S.%f"):
         print('Update found. Latest model from was uploaded to drive on ', time)
+    else:
+        print('Model already up-to-date.')
+
+    settings = Settings(None, restore_from_path=path_to_import + os.sep + 'settings.txt')
+    settings.update({'frozen_model_save_path': os.path.abspath(path_to_import+os.sep+'inference.pb')})
 
     return settings
 
@@ -194,8 +198,8 @@ def export_model_to_production(settings, export_path=None, overwrite=True, uploa
     file.writelines([datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")])
     file.close()
 
-    shutil.make_archive(export_path, 'zip', settings.get_output_path(), settings.export_dir_name)
-    # shutil.rmtree(export_path)
+    shutil.make_archive(export_path, 'zip', export_path)
+    shutil.rmtree(export_path)
     print('Model exported to ', export_path + '.zip')
     return new_path_to_settings
 
@@ -205,7 +209,7 @@ def internet_on():
         download_file_from_google_drive('1ZqDmnSt8oRbHgd7CoXsu9CYfoKusKjYK', 'hi.txt')
         os.remove('hi.txt')
         return True
-    except SystemError as err:
+    except:
         return False
 
 

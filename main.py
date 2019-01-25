@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', dest='epoch', type=int, default=20)
-parser.add_argument('--batch_size', dest='batch_size', type=int, default=160)
+parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
 parser.add_argument('--height', dest='height', type=int, default=32)
 parser.add_argument('--width', dest='width', type=int, default=32)
 parser.add_argument('--channels', dest='channels', type=int, default=3)

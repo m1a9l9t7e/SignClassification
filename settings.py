@@ -15,6 +15,7 @@ class Settings:
     output_path_from_model_root = os.sep+'output'+os.sep
     data_path_from_root = '.' + os.sep + 'data'
     export_dir_name = 'export'
+    import_dir_name = 'import'
     settings = []
 
     def __init__(self, arg_dict, restore_from_path=None):
@@ -30,12 +31,12 @@ class Settings:
                     else:
                         data_type = str(type(value[0])).split("'")[1]
                 settings_item = SettingsItem(key, data_type, value, is_list)
-                # print(settings_item)
                 self.settings.append(settings_item)
+            self.settings_path = self.get_settings_path()
             self.save(check_overwrite=True)
         else:
-            self.load(restore_from_path)
             self.settings_path = restore_from_path
+            self.load(restore_from_path)
 
     def save(self, update=False, check_overwrite=False):
         """
@@ -44,18 +45,18 @@ class Settings:
         :param check_overwrite: Check saving overwrites old settings. Take action accordingly
         :return: void
         """
-        settings_path = self.models_path + self.get_setting_by_name('model_name') + os.sep + 'settings.txt'
-        dir_path = self.models_path + self.get_setting_by_name('model_name')
+        dir_path = self.get_settings_path()[:len(self.get_settings_path())-len(self.get_settings_path().split(os.sep)[-1])-1]
+        # dir_path = self.get_settings_path()[:len(os.sep+'settings.txt')] easier alternative
 
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        if update and os.path.isfile(settings_path):
-            os.remove(settings_path)
+        if update and os.path.isfile(self.settings_path):
+            os.remove(self.settings_path)
 
-        if check_overwrite and os.path.isfile(settings_path):
+        if check_overwrite and os.path.isfile(self.settings_path):
             # settings_copy = self.settings
-            # self.load(settings_path)
+            # self.load(self.settings_path)
             # TODO check if self.settings and settings_copy equal, if not overwrite
             # return
             # input('WARNING: This will overwriting existing settings!\nIf you want to continue, press any key. Otherwise, abort the program.')
@@ -67,11 +68,10 @@ class Settings:
                 settings_item.name + self.separator + str(settings_item.value) + self.separator + settings_item.type + self.separator + str(
                     settings_item.is_list) + '\n')
 
-        file = open(settings_path, 'w')
+        file = open(self.settings_path, 'w')
         file.writelines(settings_print)
         file.close()
-        print('Settings saved at ' + settings_path)
-        self.settings_path = settings_path
+        print('Settings saved at ' + self.settings_path)
 
     def load(self, path):
         """
@@ -131,14 +131,6 @@ class Settings:
                 return settings_item.value
         return None
 
-    # def print(self):
-    #     """
-    #     Prints data and metadata about all current settings
-    #     :return: void
-    #     """
-    #     for setting in self.settings:
-    #         print(setting)
-
     def get_save_path(self):
         return self.models_path + self.get_setting_by_name('model_name') + self.save_path_from_model_root
 
@@ -147,6 +139,12 @@ class Settings:
 
     def get_output_path(self):
         return self.models_path + self.get_setting_by_name('model_name') + self.output_path_from_model_root
+
+    def get_settings_path(self):
+        if self.settings_path is None:
+            return self.models_path + self.get_setting_by_name('model_name') + os.sep + 'settings.txt'
+        else:
+            return self.settings_path
 
     def assess(self, args):
         """

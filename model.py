@@ -227,7 +227,7 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
                 saver.save(sess, save_path)
                 settings.update({'model_save_path': save_path, 'input_checkpoint': save_path})
                 print('Model saved at ', save_path)
-            elif test_accuracy == 0 and epoch % 10 == 0:
+            elif test_accuracy == 0:
                 save_dir = settings.get_save_path()
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
