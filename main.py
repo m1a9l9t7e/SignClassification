@@ -77,7 +77,6 @@ else:
 
 settings.assess(args)
 data_manager = DataManager(settings)
-sys.exit(0)
 
 if args.train:
     try:
