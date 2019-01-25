@@ -1,16 +1,15 @@
 import argparse
-import sys
 import warnings
-import os
 import util
 import tf_util
-from data import DataManager, OrderedBatchProvider
+from data import OrderedBatchProvider
 
 
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data', dest='path_to_data', default='data'+os.sep+'isf'+os.sep+'test')
+parser.add_argument('--data', dest='path_to_data', help='Path to folder containing images/videos. This need to be provided')
+parser.add_argument('--path_to_import', dest='path_to_import', default='.', help='determines where model is imported to')
 
 args = parser.parse_args()
 
@@ -20,5 +19,3 @@ path_to_data = args.path_to_data
 data = util.read_any_data(path_to_data, settings=settings)
 test_data_provider = OrderedBatchProvider(data, [], settings.get_setting_by_name('batch_size'), [])
 tf_util.execute_frozen_model(settings, test_data_provider)
-
-# image_ready = util.transform(image, settings)
