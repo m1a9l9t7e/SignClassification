@@ -77,7 +77,7 @@ def get_necessary_dataset(dataset_name, data_dir):
         if dataset_name == 'isf-new':
             download_file_from_google_drive('1cD7n4HDnxbISMuFJGc6d8j7Cnqk8_6vT', data_dir + os.sep + 'data.zip')
         if dataset_name == 'isf-complete':
-            download_file_from_google_drive('1MQ7X6Zlvq7jjffmo9SYcnu1F1STzdugW', data_dir + os.sep + 'data.zip')
+            download_file_from_google_drive('1_VtPgZ2NbP9wka1TKZQWim34P9d2lzfN', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'gtsrb':
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':
@@ -188,9 +188,6 @@ def export_model_to_production(settings, export_path=None, overwrite=True, uploa
 
     new_path_to_frozen = export_path + os.sep + 'inference.pb'
     new_path_to_settings = export_path + os.sep + 'settings.txt'
-
-    settings.update({'frozen_model_save_path': '.'+os.sep+settings.export_dir_name+os.sep+'inference.pb'})
-    settings.save()
 
     os.mkdir(export_path)
     shutil.move(path_to_frozen, new_path_to_frozen)

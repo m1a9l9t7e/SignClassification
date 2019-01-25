@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', dest='epoch', type=int, default=20)
-parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
+parser.add_argument('--batch_size', dest='batch_size', type=int, default=160)
 parser.add_argument('--height', dest='height', type=int, default=32)
 parser.add_argument('--width', dest='width', type=int, default=32)
 parser.add_argument('--channels', dest='channels', type=int, default=3)
@@ -45,7 +45,7 @@ args = parser.parse_args()
 train_path, test_path = util.get_necessary_dataset(args.dataset_name, Settings.data_path_from_root)
 
 if args.augment_dataset:
-    util.augment_data(scalar=args.augment_scalar, path_to_data=train_path, path_to_index=util.get_index(train_path), balance=False)
+    util.augment_data(scalar=args.augment_scalar, path_to_data=train_path, path_to_index=util.get_index(train_path), balance=True)
 
 if args.path_to_settings is None:
     settings = Settings({
