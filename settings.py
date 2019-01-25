@@ -234,10 +234,13 @@ class SettingsItem:
                     value.append(int(element))
             elif self.type == 'str':
                 for element in input_string.split(','):
+                    element = element.replace(' ', '')
+                    element = element.replace('\'', '')
+                    element = element.replace('\"', '')
                     value.append(str(element))
             elif self.type == 'bool':
                 for element in input_string.split(','):
-                    element = element.strip(' ')
+                    element = element.replace(' ', '')
                     value.append(True if element == 'True' else False)
             elif self.type == 'float':
                 for element in input_string.split(','):
