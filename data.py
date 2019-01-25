@@ -47,9 +47,9 @@ class DataManager:
                     if classes_train[i] != classes_test[i]:
                         print('ERROR: train and test classes don\'t match.')
                         sys.exit(0)
-            settings.update({'num_classes': len(classes_train)})
-            settings.update({'class_names': classes_train})
-            settings.update({'class_names_test': classes_test})
+            settings.update({'num_classes': len(classes_train),
+                             'class_names': classes_train,
+                             'class_names_test': classes_test})
 
         if settings.get_setting_by_name('use_synthetic_training_data'):
             self.generator = Generator(settings, random_colors=False, path_to_background=settings.get_setting_by_name('path_to_background_data'),
@@ -125,6 +125,7 @@ class DataManager:
         if len(images) < self.batch_size:
             print('fewer images than a single batch size available!')
             sys.exit()
+
         return images, labels, classes
 
     def next_batch(self):

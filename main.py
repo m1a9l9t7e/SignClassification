@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import sys
 import warnings
 import model
 import util
@@ -76,6 +77,7 @@ else:
 
 settings.assess(args)
 data_manager = DataManager(settings)
+sys.exit(0)
 
 if args.train:
     try:

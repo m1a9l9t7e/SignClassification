@@ -32,7 +32,7 @@ class Settings:
                         data_type = str(type(value[0])).split("'")[1]
                 settings_item = SettingsItem(key, data_type, value, is_list)
                 self.settings.append(settings_item)
-            self.settings_path = self.get_settings_path()
+            self.settings_path = self.models_path + self.get_setting_by_name('model_name') + os.sep + 'settings.txt'
             self.save(check_overwrite=True)
         else:
             self.settings_path = restore_from_path
@@ -141,10 +141,7 @@ class Settings:
         return self.models_path + self.get_setting_by_name('model_name') + self.output_path_from_model_root
 
     def get_settings_path(self):
-        if self.settings_path is None:
-            return self.models_path + self.get_setting_by_name('model_name') + os.sep + 'settings.txt'
-        else:
-            return self.settings_path
+        return self.settings_path
 
     def assess(self, args):
         """
