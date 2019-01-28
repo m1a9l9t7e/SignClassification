@@ -83,7 +83,8 @@ class Settings:
         file = open(path, 'r')
         lines = file.readlines()
         for line in lines:
-            line = line[:-1]
+            line = line.replace('\r', '')
+            line = line.replace('\n', '')
             line = line.split(self.separator)
             is_list = True if line[3] == 'True' else False
             if len(line[1]) == 0:
