@@ -28,7 +28,6 @@ def model(x, y, dropout_probability, is_training, settings):
     print('input: ' + str(temp_width) + ' x ' + str(temp_height) + ' x  ' + str(temp_channels))
 
     with tf.variable_scope('cnn'):
-
         for i in range(len(conv_filters)):
 
             if settings.get_setting_by_name('batch_norm'):
@@ -135,9 +134,12 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
                     cnn_saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
                     print('CNN restored from ', settings.get_setting_by_name('input_checkpoint'), ' and LOCKED!')
                 if 'dnn' in training_lock:
-                    dnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='dnn'))
-                    dnn_saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
-                    print('DNN restored from ', settings.get_setting_by_name('input_checkpoint'), ' and LOCKED!')
+                    if len(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='dnn')) <= 0:
+                        print('No DNN to be restored.')
+                    else:
+                        dnn_saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='dnn'))
+                        dnn_saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
+                        print('DNN restored from ', settings.get_setting_by_name('input_checkpoint'), ' and LOCKED!')
             else:
                 saver.restore(sess, settings.get_setting_by_name('input_checkpoint'))
 

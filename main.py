@@ -21,7 +21,7 @@ parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, defaul
 parser.add_argument('--dropout', dest='dropout_probability', type=float, default=1.0)
 parser.add_argument('--batch_norm', dest='batch_norm', type=bool, default=False, choices=[True, False])
 parser.add_argument('--model', dest='model_name', default=datetime.datetime.now().strftime("%I_%M%p_on_%B_%d,_%Y"))
-parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['isf', 'isf-new', 'isf-complete', 'gtsrb', 'mnist'])
+parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['isf', 'isf-new', 'isf-complete', 'gtsrb', 'mnist', 'cifar'])
 parser.add_argument('--augment', dest='augment_dataset', type=bool, default=False, choices=[True, False])
 parser.add_argument('--augment_scalar', dest='augment_scalar', type=float, default=2.0)
 parser.add_argument('--restore', dest='restore_type', default='auto', choices=['auto', 'by_name', 'path', 'transfer'])
@@ -49,10 +49,10 @@ if args.augment_dataset:
 
 if args.path_to_settings is None:
     settings = Settings({
-        'conv_filters': [16, 16, 16, 16, 32, 32, 32],
-        'conv_kernels': [5, 5, 5, 5, 2, 2, 2],
-        'pooling_after_conv': [False, False, False, False, True, True, True],
-        'fc_hidden': [128, 128],
+        'conv_filters': [32, 32, 64, 64, 128],
+        'conv_kernels': [3, 3, 2, 2, 2],
+        'pooling_after_conv': [False, True, False, True, True],
+        'fc_hidden': [1024],
         'height': args.height,
         'width': args.width,
         'channels': args.channels,

@@ -74,16 +74,20 @@ def get_necessary_dataset(dataset_name, data_dir):
         print('Downloading..')
         if dataset_name == 'isf':
             download_file_from_google_drive('1Xvw7w3XKNLPWwfCZMKordtS7c-sIc_cs', data_dir + os.sep + 'data.zip')
-        if dataset_name == 'isf-new':
+        elif dataset_name == 'isf-new':
             download_file_from_google_drive('1cD7n4HDnxbISMuFJGc6d8j7Cnqk8_6vT', data_dir + os.sep + 'data.zip')
-        if dataset_name == 'isf-complete':
-            download_file_from_google_drive('1_VtPgZ2NbP9wka1TKZQWim34P9d2lzfN', data_dir + os.sep + 'data.zip')
+        elif dataset_name == 'isf-complete':
+            download_file_from_google_drive('167KKzfS3IYuvZBxpxaGMx1OrEW6YHBwL', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'gtsrb':
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':
             download_file_from_google_drive('1I5J1OZPti20w8zFGYsBqbyaiN7X8z4iB', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'sliding_window':
             download_file_from_google_drive('1r84rQCFzj7VT2OlHuvRdeCBobgLvhnlr', data_dir + os.sep + 'data.zip')
+        elif dataset_name == 'cifar':
+            download_file_from_google_drive('1FNCLe8LRBIysWw_li7lQXVPOM_rPAb3A', data_dir + os.sep + 'data.zip')
+        else:
+            print('Dataset not found and can\'t be downloaded')
         print('Unzipping..')
         zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
         zip_ref.extractall(data_dir)
@@ -190,8 +194,8 @@ def export_model_to_production(settings, export_path=None, overwrite=True, uploa
     new_path_to_settings = export_path + os.sep + 'settings.txt'
 
     os.mkdir(export_path)
-    shutil.move(path_to_frozen, new_path_to_frozen)
-    shutil.move(path_to_settings, new_path_to_settings)
+    shutil.copy(path_to_frozen, new_path_to_frozen)
+    shutil.copy(path_to_settings, new_path_to_settings)
     time_of_export_file = export_path + os.sep + 'time_of_export.txt'
     file = open(time_of_export_file, 'w')
     file.writelines([datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")])
@@ -278,9 +282,10 @@ def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance
             # setup pipeline
             pipeline = Augmentor.Pipeline(os.path.abspath(moved_path), output_directory=(os.path.abspath(path) if output_dir == 'auto' else output_dir))
             pipeline.random_brightness(probability=0.5, min_factor=0.5, max_factor=1.5)
-            pipeline.random_distortion(probability=0.1, grid_width=4, grid_height=4, magnitude=4)
+            # pipeline.random_distortion(probability=0.1, grid_width=4, grid_height=4, magnitude=4)
             pipeline.rotate(probability=0.1, max_left_rotation=10, max_right_rotation=10)
             pipeline.shear(probability=0.1, max_shear_left=15, max_shear_right=15)
+            pipeline.zoom(probability=0.5, min_factor=1.1, max_factor=1.5)
             pipeline.sample(int(samples))
             samples_counter += samples
         elif samples < 0:
