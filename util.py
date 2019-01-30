@@ -77,7 +77,7 @@ def get_necessary_dataset(dataset_name, data_dir):
         elif dataset_name == 'isf-new':
             download_file_from_google_drive('1cD7n4HDnxbISMuFJGc6d8j7Cnqk8_6vT', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'isf-complete':
-            download_file_from_google_drive('167KKzfS3IYuvZBxpxaGMx1OrEW6YHBwL', data_dir + os.sep + 'data.zip')
+            download_file_from_google_drive('1SrckpOwES1JgTqrBOdNpBvOnGdV4wCqt', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'gtsrb':
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':
@@ -86,6 +86,8 @@ def get_necessary_dataset(dataset_name, data_dir):
             download_file_from_google_drive('1r84rQCFzj7VT2OlHuvRdeCBobgLvhnlr', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'cifar':
             download_file_from_google_drive('1FNCLe8LRBIysWw_li7lQXVPOM_rPAb3A', data_dir + os.sep + 'data.zip')
+        elif dataset_name == 'cifar100':
+            download_file_from_google_drive('12iRUNoxouTPulA3FtW0vwaqOIxVmftZr', data_dir + os.sep + 'data.zip')
         else:
             print('Dataset not found and can\'t be downloaded')
         print('Unzipping..')
@@ -282,15 +284,14 @@ def augment_data(scalar, path_to_data, path_to_index, output_dir='auto', balance
             # setup pipeline
             pipeline = Augmentor.Pipeline(os.path.abspath(moved_path), output_directory=(os.path.abspath(path) if output_dir == 'auto' else output_dir))
             pipeline.random_brightness(probability=0.5, min_factor=0.5, max_factor=1.5)
-            # pipeline.random_distortion(probability=0.1, grid_width=4, grid_height=4, magnitude=4)
+            pipeline.random_distortion(probability=0.1, grid_width=4, grid_height=4, magnitude=3)
             pipeline.rotate(probability=0.1, max_left_rotation=10, max_right_rotation=10)
-            pipeline.shear(probability=0.1, max_shear_left=15, max_shear_right=15)
-            pipeline.zoom(probability=0.5, min_factor=1.1, max_factor=1.5)
+            pipeline.shear(probability=0.2, max_shear_left=20, max_shear_right=20)
+            pipeline.zoom(probability=0.2, min_factor=1.1, max_factor=1.5)
             pipeline.sample(int(samples))
             samples_counter += samples
         elif samples < 0:
             synthetic_images = os.listdir(os.path.abspath(path))
-            print(synthetic_images)
             while samples < 0:
                 os.remove(os.path.join(os.path.abspath(path), synthetic_images[0]))
                 if len(synthetic_images) == 0:

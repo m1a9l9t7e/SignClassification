@@ -232,7 +232,10 @@ class SettingsItem:
             input_string = input_string[:-1]
             if self.type == 'int':
                 for element in input_string.split(','):
-                    value.append(int(element))
+                    if not element == '':
+                        value.append(int(element))
+                    else:
+                        break
             elif self.type == 'str':
                 for element in input_string.split(','):
                     element = element.replace(' ', '')
