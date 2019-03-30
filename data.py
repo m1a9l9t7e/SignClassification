@@ -121,9 +121,6 @@ class DataManager:
         images = np.array(images)
         images = np.resize(images, [len(images), self.height, self.width, self.channels])
         labels = np.array(labels)
-        if len(images) < self.batch_size:
-            print('fewer images than a single batch size available!')
-            sys.exit()
 
         return images, labels, classes
 

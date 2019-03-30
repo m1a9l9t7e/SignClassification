@@ -56,16 +56,20 @@ def model(x, y, dropout_probability, is_training, settings):
             tensor = tf.layers.dense(tensor, fc_hidden_units[i], activation=tf.nn.relu,
                                  kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
                                  bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False), trainable=('dnn' not in training_lock))
-            # tensor = tf.nn.dropout(tensor, dropout_probability)
+            tensor = tf.nn.dropout(tensor, dropout_probability)
             description = 'fc: ' + str(fc_hidden_units[i])
             if 'dnn' in training_lock:
                 description += ' locked!'
             print(description)
 
     with tf.variable_scope('out-dnn'):
-        output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'),
-                                 kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
-                                 bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
+        if temp_width * temp_height * temp_channels == settings.get_setting_by_name('num_classes'):
+            output = tensor
+            print('fully convolutional resize')
+        else:
+            output = tf.layers.dense(tensor, settings.get_setting_by_name('num_classes'),
+                                     kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
+                                     bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False))
 
     output = tf.nn.softmax(output, name=settings.get_setting_by_name('output_node_name'))
     print('output: ' + str(settings.get_setting_by_name('num_classes')))
@@ -92,8 +96,8 @@ def train(settings, data_manager, n_epochs=400, restore_type='auto', show_test=F
     :param show_test: show classified images
     :param restore_argument: depending on the restore type, restore data must provide the according information - either the name or path of a saved model
     """
-    # np.random.seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
-    # tf.set_random_seed(settings.get_setting_by_name('seed'))  # doesn't work for currently
+    # np.random.seed(settings.get_setting_by_name('seed'))  # doesn't work currently
+    # tf.set_random_seed(settings.get_setting_by_name('seed'))  # doesn't work currently
     x = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('width'), settings.get_setting_by_name('height'), settings.get_setting_by_name('channels')],
                        name=settings.get_setting_by_name('input_node_name'))
     y = tf.placeholder(tf.float32, [None, settings.get_setting_by_name('num_classes')])
