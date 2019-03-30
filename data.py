@@ -1,5 +1,3 @@
-import random
-
 import cv2
 from abc import abstractmethod
 import numpy as np
@@ -61,7 +59,8 @@ class DataManager:
                 print('Warning: classes in training set and synthetic data don\'t match! This will lead to inconsistent class labels.')
                 print('You should also make sure that class names match!')
                 print('Aborting.')
-                # TODO: make distinction between mixed training and pure synthetic. In case of mixed, stop trainign if artif and trainset data classes don't match
+                # TODO: make distinction between mixed training and pure synthetic. In case of mixed, stop trainign if
+                # TODO: artif and trainset data classes don't match
                 # sys.exit(0)
         else:
             self.generator = None
