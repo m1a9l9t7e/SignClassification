@@ -572,6 +572,7 @@ def transform(image, settings):
             print('ERROR: data is in gray scale, yet the model requires three input channels.')
             print('No conversion from grayscale to color possible')
             print('Aborting..')
+            sys.exit(0)
     elif np.shape(image)[2] == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if settings.get_setting_by_name('channels') == 1 else image
     elif np.shape(image)[2] == 4:
@@ -662,3 +663,4 @@ def merge_images(bg, fg, x, y):
     cv2.imshow('win', output)
     cv2.waitKey(0)
     return output
+

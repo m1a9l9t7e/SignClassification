@@ -4,96 +4,98 @@ import numpy as np
 import os
 import sys
 from ascii_graph import Pyasciigraph
-from data_generator import Generator
+import util
 
 
 class DataManager:
     """
-    This class reads and augments the data and ultimately provides
-    train and test data to a model in batch-sized portions.
+    This class provides train and test data for
+    various tasks to a model in batch-sized portions.
     """
     def __init__(self, settings):
-        self.height = settings.get_setting_by_name('height')
-        self.width = settings.get_setting_by_name('width')
-        self.channels = settings.get_setting_by_name('channels')
         self.batch_size = settings.get_setting_by_name('batch_size')
 
+        # === GET TRAINING DATA ===
         if not os.path.exists(settings.get_setting_by_name('train_data_dir')):
             print('train data not found.')
-            classes_train = [None]
-            self.train_provider = OrderedBatchProvider([None], [None], 0, classes_train)
+            self.train_provider = OrderedBatchProvider([None], [None], 0)
         else:
             print('reading train data:')
-            self.train_images, self.labels, classes_train = self.read(settings.get_setting_by_name('train_data_dir'))
-            self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size, classes_train)
+            self.train_images, self.labels = self.get_labeled_data(settings, 'train')
+            self.train_provider = RandomBatchProvider(self.train_images, self.labels, self.batch_size)
 
+        # === GET TEST DATA ===
         if not os.path.exists(settings.get_setting_by_name('test_data_dir')):
             print('test data not found.')
-            classes_test = [None]
-            self.test_provider = OrderedBatchProvider([None], [None], 0, classes_test)
+            self.test_provider = OrderedBatchProvider([None], [None], 0)
         else:
             print('reading test data:')
-            self.test_images, self.test_labels, classes_test = self.read(settings.get_setting_by_name('test_data_dir'))
-            self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size, classes_test)
+            self.test_images, self.test_labels = self.get_labeled_data(settings, 'test')
+            self.test_provider = OrderedBatchProvider(self.test_images, self.test_labels, self.batch_size)
 
-        if not (len(classes_train) <= 1 or len(classes_test) <= 1):  # either test or train data was not found
-            if len(classes_train) != len(classes_test):
-                print("Warning: number of classes of train and test set don't match!")
-                # sys.exit(0)
-            else:
-                for i in range(len(classes_train)):
-                    if classes_train[i] != classes_test[i]:
-                        print('ERROR: train and test classes don\'t match.')
-                        sys.exit(0)
-            settings.update({'num_classes': len(classes_train),
-                             'class_names': classes_train,
-                             'class_names_test': classes_test})
-
-        if settings.get_setting_by_name('use_synthetic_training_data'):
-            self.generator = Generator(settings, random_colors=False, path_to_background=settings.get_setting_by_name('path_to_background_data'),
-                                       path_to_foreground=settings.get_setting_by_name('path_to_foreground_data'))
-            generator_class_names = self.generator.get_class_names()
-            settings.update({'class_names': generator_class_names})
-            settings.update({'num_classes': len(generator_class_names)})
-            if len(generator_class_names) != len(classes_train):
-                print('Warning: classes in training set and synthetic data don\'t match! This will lead to inconsistent class labels.')
-                print('You should also make sure that class names match!')
-                print('Aborting.')
-                # TODO: make distinction between mixed training and pure synthetic. In case of mixed, stop trainign if
-                # TODO: artif and trainset data classes don't match
-                # sys.exit(0)
-        else:
-            self.generator = None
-
-    def image_conversion(self, image):
+    def next_batch(self):
         """
-        Converts image to grayscale and resizes according to settings.
-        :param image: the image to be converted.
-        :return: the converted image as numpy array.
+        Returns next train batch.
+        :return: images and labels as numpy arrays. First dimension is equal to batch_size
         """
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, ) if self.channels == 1 else image
-        image = cv2.resize(image, (self.height, self.width))
-        return image
+        return self.train_provider.next_batch()
 
-    def read(self, data_dir, print_distribution=True):
+    def next_test_batch(self):
+        """
+        Returns next test batch.
+        :return: images and labels as numpy arrays. First dimension is equal to batch_size
+        """
+        return self.test_provider.next_batch()
+
+    def batches_per_epoch(self):
+        """
+        :return: the number of batches per epoch
+        """
+        return int(len(self.train_images)/self.batch_size)
+
+    def batches_per_test(self):
+        """
+        :return: the number of batches per epoch
+        """
+        return int(len(self.test_images)/self.batch_size)
+
+    @abstractmethod
+    def get_labeled_data(self, settings, stage):
+        data = []
+        labels = []
+        return data, labels
+
+
+class ClassificationDataManager(DataManager):
+    def __init__(self, settings):
+        super().__init__(settings)
+
+    def get_labeled_data(self, settings, stage, print_distribution=True):
         """
         Reads all images from subdirectories and creates corresponding labels.
         Optionally, a sample distribution over the classes will be printed.
-        :param data_dir: the directory containing a folder for each class which in turn contain the data.
+        Class names of generated labels will be saved in settings.
+        :param settings: settings for providing data paths and for saving class names
+        :param stage: decides which data is accessed depending on the stage (choices=['train', 'test'])
         :param print_distribution: if true, a distribution of samples over the classes will be printed to console.
-        :param channels: number of channels for each image (has to be smaller or equal to channels of raw data)
-        :return: the images, labels and number of classes.
+        :return: the images and labels.
         """
+        if stage not in ['train', 'test']:
+            print('ERROR: invalid data manager stage!')
+            sys.exit(0)
+
+        path_to_data = settings.get_setting_by_name('train_data_dir') if stage == 'train' else settings.get_setting_by_name('test_data_dir')
+
         images = []
         labels = []
 
         distribution = []
         classes = []
 
-        subdirs = list(os.walk(data_dir))[0][1]
+        subdirs = list(os.walk(path_to_data))[0][1]
         subdirs = sorted(subdirs)
         for i in range(len(subdirs)):
-            path = os.path.join(data_dir, subdirs[i])
+            path = os.path.join(path_to_data, subdirs[i])
             list_dir = os.listdir(path)
             counter = 0
             for image in list_dir:
@@ -102,7 +104,7 @@ class DataManager:
                 image = cv2.imread(os.path.join(path, image))
                 if len(np.shape(image)) < 3:
                     image = np.expand_dims(image, 2)
-                images.append(self.image_conversion(image))
+                images.append(util.transform(image, settings))
                 label = np.zeros(len(subdirs), np.float32)
                 label[i] = 1.0
                 labels.append(label)
@@ -119,41 +121,97 @@ class DataManager:
         print("total number of images: " + str(len(images)))
         print(np.shape(images))
         images = np.array(images)
-        images = np.resize(images, [len(images), self.height, self.width, self.channels])
+        images = np.resize(images, [len(images), settings.get_setting_by_name('height'),
+                                    settings.get_setting_by_name('width'), settings.get_setting_by_name('channels')])
         labels = np.array(labels)
 
-        return images, labels, classes
+        if stage == 'train':
+            settings.update({
+                'class_names': classes,
+                'num_classes': len(classes)
+            })
+        elif stage == 'test':
+            settings.update({
+                'class_names_test': classes
+            })
 
-    def next_batch(self):
+        return images, labels
+
+
+class AutoencodingDataManager(DataManager):
+    def __init__(self, settings):
+        super().__init__(settings)
+
+    def get_labeled_data(self, settings, stage, image_limit=None):
         """
-        Returns next train batch.
-        :return: images and labels as numpy arrays. First dimension is equal to batch_size
+        reads all video/image files, transforms them into the correct shape
+        and stacks them into a single array.
+        :param: settings: used for retrieving the path to the data and the correct image dimensions
+        :return All images, once as data, once as labels
         """
-        if self.generator is not None:
-            return self.generator.generate(self.batch_size)
+        if stage not in ['train', 'test']:
+            print('ERROR: invalid data manager stage!')
+            sys.exit(0)
+
+        path_to_data = settings.get_setting_by_name('train_data_dir') if stage == 'train' else settings.get_setting_by_name('test_data_dir')
+        images = util.read_any_data(path_to_data, settings=settings)
+        print("\nTotal number of training images: " + str(len(images)))
+        if image_limit is not None:
+            images = np.random.permutation(images)
+            images = images[0:image_limit]
+            print("\nTotal number stochastically reduced to image limit: " + str(len(images)))
+
+        images = np.resize(images, [len(images), settings.get_setting_by_name('height'),
+                                    settings.get_setting_by_name('width'), settings.get_setting_by_name('channels')])
+        return images, images
+
+
+class SegmentationDataManager(DataManager):
+    def __init__(self, settings):
+        super().__init__(settings)
+
+    def get_labeled_data(self, settings, stage):
+        """
+        reads all video/image files, transforms them into the correct shape
+        and stacks them into a single array.
+        :param: settings: used for retrieving the path to the data and the correct image dimensions
+        :return All images, once as data, once as labels
+        """
+
+        if stage == 'train':
+            path_to_data = settings.get_setting_by_name('train_data_dir')
+            path_to_ground_truth = settings.get_setting_by_name('train_data_dir_gt')
+        elif stage == 'test':
+            path_to_data = settings.get_setting_by_name('test_data_dir')
+            path_to_ground_truth = settings.get_setting_by_name('test_data_dir_gt')
         else:
-            return self.train_provider.next_batch()
+            print('ERROR: invalid data manager stage!')
+            sys.exit(0)
 
-    def next_test_batch(self):
-        """
-        Returns next test batch.
-        :return: images and labels as numpy arrays. First dimension is equal to batch_size
-        """
-        return self.test_provider.next_batch()
+        images, image_names = util.read_any_data(path_to_data, settings=settings, return_filenames=True)
+        ground_truth, ground_truth_names = util.read_any_data(path_to_ground_truth, settings=settings, return_filenames=True)
+        if len(images) != len(ground_truth):
+            print('ERROR: number of images and ground truth dont\'t match')
+            sys.exit(0)
 
-    def batches_per_epoch(self):
-        """
-        :return: the number of batches per epoch
-        """
-        return int(len(self.train_images)/self.batch_size)
+        for i in range(len(image_names)): # hopefully not necessary if names match
+            if image_names[i] != ground_truth_names[i]:
+                print('ERROR: names of images and ground truth don\'t match')
+        print("\nTotal number of training examples: " + str(len(images)))
+
+        images = np.resize(images, [len(images), settings.get_setting_by_name('height'),
+                                    settings.get_setting_by_name('width'), settings.get_setting_by_name('channels')])
+        # TODO: ground truth dims may differ from input dims
+        ground_truth = np.resize(images, [len(ground_truth), settings.get_setting_by_name('height'),
+                                          settings.get_setting_by_name('width'), settings.get_setting_by_name('channels')])
+        return images, ground_truth
 
 
 class BatchProvider:
-    def __init__(self, data, labels, batch_size, class_names):
+    def __init__(self, data, labels, batch_size):
         self.data = data
         self.labels = labels
         self.batch_size = batch_size
-        self.class_names = class_names
         self.iteration = 0
         self.reset()
 
@@ -203,7 +261,22 @@ class RandomBatchProvider(BatchProvider):
         :return:
         """
         self.iteration = 0
-        perm = np.arange(len(self.data))
-        np.random.shuffle(perm)
-        self.data = self.data[perm]
-        self.labels = self.labels[perm]
+        self.data, self.labels = self.shuffle_two_arrays_in_place(self.data, self.labels)
+
+    @staticmethod
+    def shuffle_two_arrays_in_place(a, b):
+        """
+        This function shuffles two arrays a and b the exact same way, without making a copy of either.
+        This is important, because when training an autoencoder, a and b reference the same array.
+        Copying an array and then shuffling instead of shuffling the arrays in place would therefore
+        lead to inconsistent shuffles.
+        :param a: First array to be shuffled
+        :param b: Second array to be shuffled
+        :return: The references to the identically shuffled arrays a and b
+        (this works if a and b reference the same array)
+        """
+        rng_state = np.random.get_state()
+        np.random.shuffle(a)
+        np.random.set_state(rng_state)
+        np.random.shuffle(b)
+        return a, b

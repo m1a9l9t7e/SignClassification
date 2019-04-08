@@ -66,12 +66,23 @@ def load_graph(frozen_graph_filename):
     return graph
 
 
-def execute_frozen_model(settings, batch_provider):
-
+def execute_frozen_model(settings, batch_provider, batch_provider_class_names=None):
+    """
+    Executes a previously frozen model specified in settings on data provided by a given batch_provider.
+    If classes of provided data differ from test classes, then an array of class names has to be provided,
+    which matches the one hot encoding.
+    :param settings: The settings specifying the path to the frozen model as well as names of input and output node
+    :param batch_provider: The batch provider containing the data on which the model is to be executed
+    :param batch_provider_class_names: Array of class names matching corresponding to the data of the batch provider.
+    (class names index must match indices of labels provided by batch provider)
+    :return:
+    """
     graph = load_graph(settings.get_setting_by_name('frozen_model_save_path'))
     output_node_name = settings.get_setting_by_name('output_node_name')
     input_node_name = settings.get_setting_by_name('input_node_name')
     model_prediction_class_names = settings.get_setting_by_name('class_names')
+    if batch_provider_class_names is None:
+        batch_provider_class_names = settings.get_setting_by_name('class_names_test')
 
     input_node_in_graph = False
     output_node_in_graph = False
@@ -119,7 +130,7 @@ def execute_frozen_model(settings, batch_provider):
                     print(str(k + 1) + '. ', _class_names[k], ' with a confidence of ', np.round(classes[k], 2))
 
                 if len(batch_y) > j:
-                    print('correct class: ', batch_provider.class_names[np.argmax(batch_y[j])])
+                    print('correct class: ', batch_provider_class_names[np.argmax(batch_y[j])])
                     if np.argmax(batch_y[j]) == np.argmax(predictions[j]):
                         correct += 1
                     else:
