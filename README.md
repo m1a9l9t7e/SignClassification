@@ -1,9 +1,9 @@
 To run this project the following packages have to be installed:
 
-python-opencv
+opencv-python
 Pillow
 Augmentor
-ascii-graph
+ascii_graph
 
 # sign-classification
 Dynamic implementation of a neural network for image classification in tensorflow from scratch.
