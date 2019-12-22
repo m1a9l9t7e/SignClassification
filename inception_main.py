@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import sys
 import warnings
 import os
 import cv2
@@ -71,7 +72,7 @@ def evaluate_images(settings, path_to_model, images, labels=None):
 
 parser = argparse.ArgumentParser()
 # Number of epochs of training. (One epoch uses all training material)
-parser.add_argument('--epoch', dest='epoch', type=int, default=1)
+parser.add_argument('--epoch', dest='epoch', type=int, default=5)
 # Batch size for single training inference
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=10)
 # Image height that neural net expects. (Images of differing sizes will be scaled)
@@ -165,11 +166,11 @@ if model is not None:
     # Do inference
     if args.execute:
         print('Evaluating Model..')
-        print('Number of test images: ', data_manager.get_number_test_samples())
-        print('Number of test epochs: ', data_manager.get_batches_per_test_epoch())
+        test_data_generator = data_manager.read_yield(settings.get_setting_by_name('test_data_dir'))
         for i in range(data_manager.get_batches_per_test_epoch()):
-            images, labels = data_manager.read_yield(settings.get_setting_by_name('test_data_dir'))
+            images, labels = next(test_data_generator)
             evaluate_images_model_loaded(settings, model, images, labels=labels)
+        cv2.destroyAllWindows()
 
     # Save model
     if args.freeze:
