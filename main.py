@@ -14,13 +14,12 @@ warnings.filterwarnings("ignore")
 
 
 def train(settings, data_manager, restore_model=None):
-
     # Construct model and load imagenet weights
     architecture = settings.get_setting_by_name('model_architecture')
     if architecture == 'inception':
-        model = build_inception(settings, load_weights=(restore_model is None))
+        model = build_inception(settings, load_imagenet_weights=(restore_model is None))
     elif architecture == 'resnet':
-        model = build_resnet(settings, load_weights=(restore_model is None))
+        model = build_resnet(settings, load_imagenet_weights=(restore_model is None))
     else:
         print('Error: model architecture ' + architecture + ' is currently not supported')
         return None
@@ -30,11 +29,11 @@ def train(settings, data_manager, restore_model=None):
         model.load_weights(restore_model, by_name=True)
 
     # Start Fine-tuning
-    model.fit_generator(data_manager.read_yield(settings.get_setting_by_name('train_data_dir')),
+    model.fit_generator(data_manager.yield_train_batch(settings.get_setting_by_name('batch_size')),
                         nb_epoch=settings.get_setting_by_name('epoch'),
                         samples_per_epoch=data_manager.get_number_train_samples(),
                         verbose=1,
-                        validation_data=data_manager.read_yield(settings.get_setting_by_name('test_data_dir')),
+                        validation_data=data_manager.yield_test_batch(settings.get_setting_by_name('batch_size')),
                         nb_val_samples=data_manager.get_number_test_samples(),
                         max_q_size=10
                         )
@@ -72,18 +71,25 @@ def evaluate_images_model_loaded(settings, model, images, labels=None, show=True
 
 
 def evaluate_images(settings, path_to_model, images, labels=None):
-    model = build_inception(settings, load_weights=False)
+    architecture = settings.get_setting_by_name('model_architecture')
+    if architecture == 'inception':
+        model = build_inception(settings, load_imagenet_weights=False)
+    elif architecture == 'resnet':
+        model = build_resnet(settings, load_imagenet_weights=False)
+    else:
+        print('Error: model architecture ' + architecture + ' is currently not supported')
+        return None
     model.load_weights(path_to_model, by_name=True)
     evaluate_images_model_loaded(settings, model, images, settings, labels)
 
 
 parser = argparse.ArgumentParser()
 # Number of epochs of training. (One epoch uses all training material)
-parser.add_argument('--epoch', dest='epoch', type=int, default=8)
+parser.add_argument('--epoch', dest='epoch', type=int, default=5)
 # Batch size for single training inference
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=10)
 # The model architecture to train (currently only inception-v4 and resnet-101 are available)
-parser.add_argument('--model', dest='model_architecture', default='resnet', choices=['inception', 'resnet'])
+parser.add_argument('--model', dest='model_architecture', default='inception', choices=['inception', 'resnet'])
 # The name of the trained model (used for saving the training results)
 parser.add_argument('--name', dest='model_name', default=datetime.datetime.now().strftime("%I_%M%p_on_%B_%d,_%Y"))
 # The name of the dataset used for training. If available, the dataset will be downloaded automatically.
@@ -92,7 +98,7 @@ parser.add_argument('--name', dest='model_name', default=datetime.datetime.now()
 # isf -> limited dataset with 4 signs, badly cropped.
 # gtsrb -> real street signs, (Not all classes from CC present, even contains new classes)
 # mnist -> standard hand written digits dataset
-# cifar10 -> standard 32x32 image classification dataset (may be used for pre-training a model)
+# cifar -> standard 32x32 image classification dataset (may be used for pre-training a model)
 parser.add_argument('--dataset', dest='dataset_name', default='isf-complete',
                     choices=['isf', 'isf-new', 'isf-complete', 'gtsrb', 'mnist', 'cifar', 'cifar100'])
 # Whether to augment the available training data at the start of the training

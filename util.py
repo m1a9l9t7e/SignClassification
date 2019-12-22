@@ -523,18 +523,6 @@ def read_any_data(path_to_folder, imread_unchanged=False, settings=None, return_
                 image = transform(image, settings)
             names.append((path_to_file.split(os.sep)[-1]).split('.')[0])
             images.append(image)
-        elif get_file_type(path_to_file) == 'video':
-            sys.stdout.write('\rreading file (video) ' + str(counter+1) + '/' + str(len(os.listdir(path_to_folder))))
-            sys.stdout.flush()
-            video = read_video(path_to_file)
-            names.append((path_to_file.split(os.sep)[-1]).split('.')[0])
-            for i in range(len(video)-1):
-                image = video[i]
-                if len(np.shape(image)) < 3:
-                    image = np.expand_dims(file, 2)
-                if settings is not None:
-                    image = transform(image, settings)
-                images.append(image)
         elif get_file_type(path_to_file) == 'subdirectory':
             sys.stdout.write('reading files from subdirectory ' + path_to_file + ' ..')
             sys.stdout.flush()
@@ -579,86 +567,3 @@ def transform(image, settings):
 
     image = cv2.resize(image, (settings.get_setting_by_name('height'), settings.get_setting_by_name('width')))
     return image
-
-
-def read_video(path_to_video):
-    output = []
-    cap = cv2.VideoCapture(path_to_video)
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        output.append(frame)
-        if not ret:
-            break
-
-    cap.release()
-    return output
-
-
-class Rect:
-    def __init__(self, x, y, width, height):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-
-    def unpack(self):
-        return self.x, self.y, self.width, self.height
-
-    def __str__(self):
-        return str(self.x) + ' ' + str(self.y) + ' ' + str(self.width) + ' ' + str(self.height)
-
-
-def get_rects_sliding_window(image, window_width, window_height, stride):
-    x_iter = 0
-    y_iter = 0
-    rects = []
-    while x_iter * stride + window_width < np.shape(image)[1]:
-        while y_iter * stride + window_height < np.shape(image)[0]:
-            rect = Rect(x_iter*stride, y_iter*stride, x_iter*stride+window_width, y_iter*stride+window_height)
-            rects.append(rect)
-            y_iter += 1
-        y_iter = 0
-        x_iter += 1
-
-    return rects
-
-
-def sliding_window(settings, image, window_width, window_height, stride):
-    x_iter = 0
-    y_iter = 0
-    windows = []
-    while x_iter * stride + window_width < np.shape(image)[1]:
-        while y_iter * stride + window_height < np.shape(image)[0]:
-            window = image[y_iter*stride:y_iter*stride+window_height, x_iter*stride:x_iter*stride+window_width]
-            if settings.get_setting_by_name('channels') == 1:
-                window = cv2.cvtColor(window, cv2.COLOR_BGR2GRAY, )
-            window = cv2.resize(window, (settings.get_setting_by_name('height'), settings.get_setting_by_name('width')))
-            if len(np.shape(window)) < 3:
-                window = np.expand_dims(window, 3)
-            windows.append(window)
-            # cv2.imshow('window', window)
-            # cv2.waitKey(0)
-            y_iter += 1
-        y_iter = 0
-        x_iter += 1
-
-    return windows
-
-
-def merge_images(bg, fg, x, y):
-    bg_height = np.shape(bg)[0]
-    bg_width = np.shape(bg)[1]
-    fg_height = np.shape(fg)[0]
-    fg_width = np.shape(fg)[1]
-
-    fg = PIL.Image.fromarray(cv2.cvtColor(fg, cv2.COLOR_BGR2RGBA))
-    bg = PIL.Image.fromarray(cv2.cvtColor(bg, cv2.COLOR_BGR2RGBA))
-
-    box = Image.new('RGBA', (bg_width, bg_height), (0, 0, 0, 0))
-    box.paste(bg, (0, 0))
-    box.paste(fg, (x, y), mask=fg)
-    output = cv2.cvtColor(np.array(box), cv2.COLOR_RGBA2BGR)
-    cv2.imshow('win', output)
-    cv2.waitKey(0)
-    return output

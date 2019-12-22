@@ -91,7 +91,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2))
     return x
 
 
-def resnet101_model(settings, load_weights=True):
+def resnet101_model(settings, load_imagenet_weights=True):
     """
     Resnet 101 Model for Keras
 
@@ -159,7 +159,7 @@ def resnet101_model(settings, load_weights=True):
         # Use pre-trained weights for Tensorflow backend
         weights_path = 'imagenet_weights/resnet101_weights_tf.h5'
 
-    if load_weights:
+    if load_imagenet_weights:
         model.load_weights(weights_path, by_name=True)
 
     # Truncate and replace softmax layer for transfer learning

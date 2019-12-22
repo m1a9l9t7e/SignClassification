@@ -202,7 +202,7 @@ def inception_v4_base(input):
     return net
 
 
-def inception_v4_model(settings, load_weights=True):
+def inception_v4_model(settings, load_imagenet_weights=True):
     '''
     Inception V4 Model for Keras
 
@@ -255,7 +255,7 @@ def inception_v4_model(settings, load_weights=True):
         # Use pre-trained weights for Tensorflow backend
         weights_path = 'imagenet_weights/inception-v4_weights_tf_dim_ordering_tf_kernels.h5'
 
-    if load_weights:
+    if load_imagenet_weights:
         model.load_weights(weights_path, by_name=True)
 
     # Truncate and replace softmax layer for transfer learning
