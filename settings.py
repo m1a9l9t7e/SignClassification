@@ -9,7 +9,7 @@ class Settings:
     During runtime settings should be retrieved via get_settings_by_name(settings_name).
     """
     separator = ';'
-    models_path = '.'+os.sep+'models'+os.sep
+    models_path = '.'+os.sep+'training_results'+os.sep
     save_path_from_model_root = os.sep+'saves'+os.sep
     logs_path_from_model_root = os.sep+'logs'+os.sep
     output_path_from_model_root = os.sep+'output'+os.sep
@@ -152,59 +152,28 @@ class Settings:
         :param args: given arguments
         :return: void
         """
-        if args.restore_type == 'transfer' and self.get_setting_by_name('training_lock') == 'none':
-            print('WARNING: Transfer learning attempted, but no part of old model is locked!')
-            input('press any key to continue...')
+        model_architecture = self.get_setting_by_name('model_architecture')
+        width = self.get_setting_by_name('width')
+        height = self.get_setting_by_name('height')
+        if model_architecture == 'inception':
+            if width == 'auto' or height == 'auto':
+                self.update({'width': 299, 'height': 299}, write_to_file=True)
+            elif not (width == 299 and height == 299):
+                print('Warning: default input dimensions for inception are (299, 299, 3).'
+                      'This will likely fail if you don\'t know what you\'re doing.')
+        elif model_architecture == 'resnet':
+            if width == 'auto' or height == 'auto':
+                self.update({'width': 224, 'height': 224}, write_to_file=True)
+            elif not (width == 224 and height == 224):
+                print('Warning: default input dimensions for resnet are (224, 224, 3).'
+                      'This will likely fail if you don\'t know what you\'re doing.')
+
         if args.dataset_name == 'mnist' and args.channels != 1:
             print('WARNING: mnist data has only one channel, but --channels was parsed as ', args.channels)
         if self.get_setting_by_name('width') * self.get_setting_by_name('height') * self.get_setting_by_name('batch_size') * 32 > 1073741824 * 4:
             print('WARNING: A single Batch exceeds 4GB of memory.')
             input('press any key to continue...')
-        if len(self.get_setting_by_name('conv_filters')) != len(self.get_setting_by_name('conv_kernels')) \
-                or len(self.get_setting_by_name('conv_kernels')) != len(self.get_setting_by_name('pooling_after_conv')):
-            print('WARNING: cnn settings are inconsistent! conv_kernels, conv_filters and pooling_after_conv must be same length!')
-            print('Aborting.')
-            sys.exit(0)
-        for i in range(len(self.get_setting_by_name('pooling_after_conv'))):
-            width = self.get_setting_by_name('width')
-            height = self.get_setting_by_name('height')
-            if self.get_setting_by_name('pooling_after_conv')[i]:
-                if width % 2 == 0 and height % 2 == 0:
-                    width /= 2
-                    height /= 2
-                else:
-                    print("WARNING: Pooling operations divide width or height unevenly.")
-                    print('Abort.')
-                    sys.exit(0)
-        if self.get_setting_by_name('learning_rate_decay') < 0.9:
-            print('WARNING: learning rate decay is very low (Decay is exponential!)')
-            input('press any key to continue...')
 
-        if args.restore_type == 'auto' or args.restore_type == 'AUTO':
-            if self.get_setting_by_name('model_save_path') is not None:
-                input_checkpoint = self.get_setting_by_name('model_save_path')
-                print('Model restored from ', self.get_setting_by_name('model_save_path'))
-            else:
-                input_checkpoint = None
-        elif args.restore_type == 'by_name':
-            if not os.path.exists(self.get_save_path() + str(args.restore_argument) + '.ckpt'):
-                print('ERROR: no model with name ', args.restore_argument, ' found.')
-                print('Aborting.')
-                sys.exit(0)
-            input_checkpoint = self.get_save_path() + str(args.restore_argument) + '.ckpt'
-            print('Model restored from ' + self.get_save_path() + str(args.restore_argument) + '.ckpt')
-        elif args.restore_type == 'path' or args.restore_type == 'transfer':
-            if not os.path.isfile(args.restore_argument + '.index'):
-                print('ERROR: no model found at path: ', args.restore_argument)
-                print('Aborting.')
-                sys.exit(0)
-            input_checkpoint = args.restore_argument
-            print('Model restored from ', args.restore_argument)
-        else:
-            print('ERROR: invalid restore type chosen.')
-            print('Aborting.')
-            sys.exit(0)
-        self.update({'input_checkpoint': input_checkpoint})
 
 
 class SettingsItem:

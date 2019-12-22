@@ -1,37 +1,103 @@
-To run this project the following packages have to be installed:
+# Sign Classification
 
-opencv-python
-Pillow
-Augmentor
-ascii_graph
+The purpose of this project is to accurately classify images of traffic sign for the annual Carolo Cup.
+The program is only designed to classify single pre-cropped images and does not perform object detection. 
 
-# sign-classification
-Dynamic implementation of a neural network for image classification in tensorflow from scratch.
+## Setup
 
-Options for restoring a model:
-- If path to saved model is specified in settings file, continue training automatically
-    - restore_type='auto'
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. 
+### Prerequisites
 
-- Continue train from certain epoch out of the models save directory
-    - restore_type='by_name'
-    - restore_argument='epoch192'
+What things you need to install beforehand
 
-- Load model from path and start train
-    - restore_type='path', 
-    - restore_argument='./models/minimalistic-cnn/saves/epoch100.ckpt'
+```
+Python 3
+(the project was tested with Python 3.5)
+```
 
-- Load only certain parts of model given by path and start train. These parts can also be excluded from training
-    - restore_type='transfer',
-    - restore_argument='./models/deep-cnn/saves/epoch119.ckpt'
-    - lock='cnn'
-    
+```
+CUDA, in the case you want to use/have an nvidia gpu
+(the project was tested with CUDA 9)
+```
 
-Usage Examples:
+```
+Linux is not a requirement for this project
+(the project was tested on both linux and windows)
+```
 
-Train using transfer learning where cnn and dnn are transfered/locked:
+### Installing
 
---data isf --channels 1 --model transfer --restore transfer --lock cnn-dnn --restore_argument ./models/gtsrb/saves/epoch53.ckpt --epoch 200
+The setup for this project is fairly simple.
 
-Train with synthetic data:
+```
+Install the python packages listed in requirements.txt
+```
 
---synthetic_data --background ./data/sliding_window --foreground ./data/signs_clean --model synthetic-test --width 64 --height 64 --freeze --epoch 20 --execute --channels 1
+Additionally, you will need to install the tensorflow python package, depending on your hardware.
+```
+If you have an Nvidia GPU and CUDA set up, install tensorflow-gpu
+Otherwise, install tensorflow
+```
+
+If you want to train a model, you also need to download the necessary imagenet weights
+
+* Download weights for resnet-101 [here](https://drive.google.com/file/d/0Byy2AcGyEVxfTmRRVmpGWDczaXM/view)
+* Download weights for inception-v4 [here](https://github.com/kentsommer/keras-inceptionV4/releases/download/2.0/inception-v4_weights_tf_dim_ordering_tf_kernels.h5)
+* More weights for different models can be found [here](https://github.com/flyyufelix/cnn_finetune#imagenet-pretrained-models), however these are not supported as of yet
+```
+The downloaded weights must be saved in the imagenet_weights folder
+```
+
+## Getting started
+
+This section will show you how to train a model or use an existing model to classify new images.
+
+### Training a model
+
+```
+execute main.py
+```
+
+You can use a range of options for training, however the defaults are setup in a way that training should work out of the box.
+
+If you want to save the model after training and execute it on the test data, you need to supply the following options
+
+```
+execute main.py --save --execute
+```
+
+
+You don't need to worry about training data, the program 
+will automatically download it for you if it's not available.
+
+You can change which data set will be downloaded by adjusting the --dataset option.
+Using the following should yield the best results
+
+```
+--dataset isf-complete
+```
+
+Here are some parameters to adjust training
+
+* epoch
+```
+The number of epochs to train for. This parameter is important to avoid over/underfitting.
+One epoch uses all available training material
+```
+
+* batch_size
+
+```
+Choosing a higher batch size speeds up training, however you
+need to stay within the limits of you gpu memory. A typical value would be 8
+```
+
+### Executing a model
+
+```
+execute test.py
+```
+
+Here you only need to specify 
+* The path to a trained model
+* The path to a folder with images to be classified 

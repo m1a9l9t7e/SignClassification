@@ -4,7 +4,6 @@ import numpy as np
 import os
 import sys
 from ascii_graph import Pyasciigraph
-from data_generator import Generator
 
 
 class DataManager:
@@ -48,22 +47,6 @@ class DataManager:
             settings.update({'num_classes': len(classes_train),
                              'class_names': classes_train,
                              'class_names_test': classes_test})
-
-        if settings.get_setting_by_name('use_synthetic_training_data'):
-            self.generator = Generator(settings, random_colors=False, path_to_background=settings.get_setting_by_name('path_to_background_data'),
-                                       path_to_foreground=settings.get_setting_by_name('path_to_foreground_data'))
-            generator_class_names = self.generator.get_class_names()
-            settings.update({'class_names': generator_class_names})
-            settings.update({'num_classes': len(generator_class_names)})
-            if len(generator_class_names) != len(classes_train):
-                print('Warning: classes in training set and synthetic data don\'t match! This will lead to inconsistent class labels.')
-                print('You should also make sure that class names match!')
-                print('Aborting.')
-                # TODO: make distinction between mixed training and pure synthetic. In case of mixed, stop trainign if
-                # TODO: artif and trainset data classes don't match
-                # sys.exit(0)
-        else:
-            self.generator = None
 
     def image_conversion(self, image):
         """
@@ -131,10 +114,7 @@ class DataManager:
         Returns next train batch.
         :return: images and labels as numpy arrays. First dimension is equal to batch_size
         """
-        if self.generator is not None:
-            return self.generator.generate(self.batch_size)
-        else:
-            return self.train_provider.next_batch()
+        return self.train_provider.next_batch()
 
     def next_test_batch(self):
         """

@@ -250,10 +250,10 @@ def inception_v4_model(settings, load_weights=True):
 
     if K.image_dim_ordering() == 'th':
         # Use pre-trained weights for Theano backend
-        weights_path = 'imagenet_models/inception-v4_weights_th_dim_ordering_th_kernels.h5'
+        weights_path = 'imagenet_weights/inception-v4_weights_th_dim_ordering_th_kernels.h5'
     else:
         # Use pre-trained weights for Tensorflow backend
-        weights_path = 'imagenet_models/inception-v4_weights_tf_dim_ordering_tf_kernels.h5'
+        weights_path = 'imagenet_weights/inception-v4_weights_tf_dim_ordering_tf_kernels.h5'
 
     if load_weights:
         model.load_weights(weights_path, by_name=True)
