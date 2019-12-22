@@ -1,6 +1,5 @@
 import argparse
 import datetime
-import sys
 import warnings
 import os
 import cv2
@@ -8,42 +7,35 @@ import numpy as np
 # from refinement.resnet_101 import resnet101_model as build_model
 from inception_v4 import inception_v4_model as build_model
 import util
-from data import DataManager
+from data_generator import DataManager
 from settings import Settings
 
 warnings.filterwarnings("ignore")
 
 
-def train(settings, batch_size, epochs, X_train, Y_train, X_valid, Y_valid, restore_model=None, save_model=True, save_name="inception-v4"):
+def train(settings, data_manager, restore_model=None):
     # Construct model and load imagenet weights
-    model = build_model(settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
-                        settings.get_setting_by_name('channels'), settings.get_setting_by_name('num_classes'),
-                        load_weights=(restore_model is None))
+    model = build_model(settings, load_weights=(restore_model is None))
 
     # Continue training if custom restore weights are specified
     if restore_model is not None:
         model.load_weights(restore_model, by_name=True)
 
     # Start Fine-tuning
-    model.fit(X_train, Y_train,
-              batch_size=batch_size,
-              nb_epoch=epochs,
-              shuffle=True,
-              verbose=1,
-              validation_data=(X_valid, Y_valid),
-              )
-
-    if save_model:
-        os.makedirs(settings.get_save_path(), exist_ok=True)
-        path = settings.get_save_path() + save_name + '.h5'
-        print('Saving model to ' + path + ' (This can take a few minutes :/)')
-        model.save_weights(path)
+    model.fit_generator(data_manager.read_yield(settings.get_setting_by_name('train_data_dir')),
+                        nb_epoch=settings.get_setting_by_name('epoch'),
+                        samples_per_epoch=data_manager.get_number_train_samples(),
+                        verbose=1,
+                        validation_data=data_manager.read_yield(settings.get_setting_by_name('test_data_dir')),
+                        nb_val_samples=data_manager.get_number_test_samples(),
+                        max_q_size=10
+                        )
 
     return model
 
 
-def evaluate_images_model_loaded(settings, model, images, batch_size, labels=None, show=True):
-    predictions_valid = model.predict(images, batch_size=batch_size, verbose=1)
+def evaluate_images_model_loaded(settings, model, images, labels=None, show=True):
+    predictions_valid = model.predict(images, batch_size=settings.get_setting_by_name('batch_size'), verbose=1)
     predictions = []
 
     for i in range(len(images)):
@@ -71,38 +63,26 @@ def evaluate_images_model_loaded(settings, model, images, batch_size, labels=Non
     return predictions
 
 
-def evaluate_images(images, path_to_model, settings, labels=None):
-
-    model = build_model(settings.get_setting_by_name('height'), settings.get_setting_by_name('width'),
-                        settings.get_setting_by_name('channels'), settings.get_setting_by_name('num_classes'),
-                        load_weights=False)
+def evaluate_images(settings, path_to_model, images, labels=None):
+    model = build_model(settings, load_weights=False)
     model.load_weights(path_to_model, by_name=True)
     evaluate_images_model_loaded(settings, model, images, settings, labels)
 
 
-def make_predictions(path_to_images, path_to_model, settings):
-    images = util.read_any_data(path_to_images, settings=settings)
-    evaluate_images(images, path_to_model, settings.get_setting_by_name('batch_size'), settings)
-
-
 parser = argparse.ArgumentParser()
 # Number of epochs of training. (One epoch uses all training material)
-parser.add_argument('--epoch', dest='epoch', type=int, default=20)
+parser.add_argument('--epoch', dest='epoch', type=int, default=1)
 # Batch size for single training inference
-parser.add_argument('--batch_size', dest='batch_size', type=int, default=160)
+parser.add_argument('--batch_size', dest='batch_size', type=int, default=10)
 # Image height that neural net expects. (Images of differing sizes will be scaled)
-parser.add_argument('--height', dest='height', type=int, default=32)
+parser.add_argument('--height', dest='height', type=int, default=299)
 # Image width that neural net expects. (Images of differing sizes will be scaled)
-parser.add_argument('--width', dest='width', type=int, default=32)
+parser.add_argument('--width', dest='width', type=int, default=299)
 # Number of channels that the neural net expects. (If channels=1, conversion to grayscale is applied if necessary)
 parser.add_argument('--channels', dest='channels', type=int, default=3)
-# Initial learning rate
-parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001)
-# Learning rate decay (Factor with which learning rate decreases every epoch)
-parser.add_argument('--lr_decay', dest='learning_rate_decay', type=float, default=0.99)
 # Dropout, only applied to dense layers (Dropout=percentage of neurons randomly omitted in training)
-parser.add_argument('--dropout', dest='dropout_probability', type=float, default=1.0)
-# Whether to use batch norm, only applied to convolutional layers
+parser.add_argument('--dropout', dest='dropout_probability', type=float, default=0.2)
+# The name of the trained model (used for saving the model at desired path)
 parser.add_argument('--model', dest='model_name', default=datetime.datetime.now().strftime("%I_%M%p_on_%B_%d,_%Y"))
 # The name of the dataset used for training. If available, the dataset will be downloaded automatically.
 # isf -> limited dataset with 4 signs, badly cropped.
@@ -111,7 +91,8 @@ parser.add_argument('--model', dest='model_name', default=datetime.datetime.now(
 # gtsrb -> real street signs, (Not all classes from CC present, even contains new classes)
 # mnist -> standard hand written digits dataset
 # cifar10 -> standard 32x32 image classification dataset (may be used for pre-training a model)
-parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['isf', 'isf-new', 'isf-complete', 'gtsrb', 'mnist', 'cifar', 'cifar100'])
+parser.add_argument('--dataset', dest='dataset_name', default='isf',
+                    choices=['isf', 'isf-new', 'isf-complete', 'gtsrb', 'mnist', 'cifar', 'cifar100'])
 # Whether to augment the available training data at the start of the training
 parser.add_argument('--augment', dest='augment_dataset', type=bool, default=False, choices=[True, False])
 # For each real image, how many augmented images should be generated? (Program keeps track of original images via
@@ -147,49 +128,55 @@ args = parser.parse_args()
 train_path, test_path = util.get_necessary_dataset(args.dataset_name, Settings.data_path_from_root)
 
 if args.augment_dataset:
-    util.augment_data(scalar=args.augment_scalar, path_to_data=train_path, path_to_index=util.get_index(train_path), balance=True)
+    util.augment_data(scalar=args.augment_scalar, path_to_data=train_path, path_to_index=util.get_index(train_path),
+                      balance=True)
 
 if args.path_to_settings is None:
     settings = Settings({
         'height': args.height,
         'width': args.width,
         'channels': args.channels,
-        'batch_size': 999999,  # This is a workaround, don't change
+        'batch_size': args.batch_size,
         'train_data_dir': train_path,
         'test_data_dir': test_path,
         'model_name': args.model_name,
+        'dropout': args.dropout_probability,
+        'epoch': args.epoch
     })
 
 else:
     settings = Settings(None, restore_from_path=args.path_to_settings)
 
 # settings.assess(args)
+# check if model was downloaded
 print('Loading and preparing data..')
 data_manager = DataManager(settings)
 
 num_classes = int(settings.get_setting_by_name('num_classes'))
 
-X_train, Y_train = data_manager.next_batch()
-X_valid, Y_valid = data_manager.next_test_batch()
-
 if args.train:
     try:
         print('Training Model..')
-        model = train(settings, args.batch_size, args.epoch, X_train, Y_train, X_valid, Y_valid)
+        model = train(settings, data_manager)
     except KeyboardInterrupt:
         print('Stop training..')
 
+if model is not None:
+    # Do inference
+    if args.execute:
+        print('Evaluating Model..')
+        print('Number of test images: ', data_manager.get_number_test_samples())
+        print('Number of test epochs: ', data_manager.get_batches_per_test_epoch())
+        for i in range(data_manager.get_batches_per_test_epoch()):
+            images, labels = data_manager.read_yield(settings.get_setting_by_name('test_data_dir'))
+            evaluate_images_model_loaded(settings, model, images, labels=labels)
 
-print('Evaluating Model..')
-evaluate_images_model_loaded(settings, model, X_valid, args.batch_size, labels=Y_valid)
-# evaluate_images(X_valid, rf_const.MODEL_SAVE_PATH, rf_const.BATCH_SIZE, settings, labels=Y_valid)
+    # Save model
+    if args.freeze:
+        os.makedirs(settings.get_save_path(), exist_ok=True)
+        path = settings.get_save_path() + 'inception-v4' + '.h5'
+        print('Saving model to ' + path + ' (This can take a few minutes :/)')
+        model.save_weights(path)
 
-
-# if args.freeze:
-#     tf_util.freeze_graph(settings)
-
-# if args.export:
-#     util.export_model_to_production(settings)
-
-# if args.execute:
-#     tf_util.execute_frozen_model(settings, data_manager.test_provider)
+    # if args.export:
+    #     TODO

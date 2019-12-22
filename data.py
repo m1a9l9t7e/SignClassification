@@ -38,7 +38,7 @@ class DataManager:
 
         if not (len(classes_train) <= 1 or len(classes_test) <= 1):  # either test or train data was not found
             if len(classes_train) != len(classes_test):
-                print("Warning: number of classes of train and test set don't match!")
+                print("Warning: number of classes of train and test set don't match! This will fail if you use Keras!")
                 # sys.exit(0)
             else:
                 for i in range(len(classes_train)):
@@ -119,7 +119,9 @@ class DataManager:
         print("total number of images: " + str(len(images)))
         print(np.shape(images))
         images = np.array(images)
-        images = np.resize(images, [len(images), self.height, self.width, self.channels])
+        if np.shape(images) != (len(images), self.height, self.width, self.channels):
+            print(np.shape(images), ' != ', (len(images), self.height, self.width, self.channels))
+            images = np.resize(images, [len(images), self.height, self.width, self.channels])
         labels = np.array(labels)
 
         return images, labels, classes

@@ -202,7 +202,7 @@ def inception_v4_base(input):
     return net
 
 
-def inception_v4_model(img_rows, img_cols, color_type=1, num_classes=None, dropout_keep_prob=0.2, load_weights=True):
+def inception_v4_model(settings, load_weights=True):
     '''
     Inception V4 Model for Keras
 
@@ -219,11 +219,17 @@ def inception_v4_model(img_rows, img_cols, color_type=1, num_classes=None, dropo
       num_classes - number of class labels for our classification task
     '''
 
+    height = settings.get_setting_by_name('height')
+    width = settings.get_setting_by_name('width')
+    channels = settings.get_setting_by_name('channels')
+    num_classes = settings.get_setting_by_name('num_classes')
+    dropout_keep_prob = settings.get_setting_by_name('dropout')
+
     # Input Shape is 299 x 299 x 3 (tf) or 3 x 299 x 299 (th)
     if K.image_dim_ordering() == 'th':
-        inputs = Input((3, 299, 299))
+        inputs = Input((channels, height, width))
     else:
-        inputs = Input((299, 299, 3))
+        inputs = Input((height, width, channels))
 
     # Make inception base
     net = inception_v4_base(inputs)

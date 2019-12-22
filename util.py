@@ -77,7 +77,7 @@ def get_necessary_dataset(dataset_name, data_dir):
         elif dataset_name == 'isf-new':
             download_file_from_google_drive('1cD7n4HDnxbISMuFJGc6d8j7Cnqk8_6vT', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'isf-complete':
-            download_file_from_google_drive('1SrckpOwES1JgTqrBOdNpBvOnGdV4wCqt', data_dir + os.sep + 'data.zip')
+            download_file_from_google_drive('1GpkTe4ryMRK2kBASHsTYiIJDaCHdWTvr', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'gtsrb':
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':
@@ -89,7 +89,7 @@ def get_necessary_dataset(dataset_name, data_dir):
         elif dataset_name == 'cifar100':
             download_file_from_google_drive('12iRUNoxouTPulA3FtW0vwaqOIxVmftZr', data_dir + os.sep + 'data.zip')
         else:
-            print('Dataset not found and can\'t be downloaded')
+            print('Dataset not found and can\'t be downloaded')#
         print('Unzipping..')
         zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
         zip_ref.extractall(data_dir)

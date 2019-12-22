@@ -38,7 +38,7 @@ parser.add_argument('--model', dest='model_name', default=datetime.datetime.now(
 # gtsrb -> real street signs, (Not all classes from CC present, even contains new classes)
 # mnist -> standard hand written digits dataset
 # cifar10 -> standard 32x32 image classification dataset (may be used for pre-training a model)
-parser.add_argument('--dataset', dest='dataset_name', default='isf', choices=['isf', 'isf-new', 'isf-complete', 'gtsrb', 'mnist', 'cifar', 'cifar100'])
+parser.add_argument('--dataset', dest='dataset_name', default='isf-complete', choices=['isf', 'isf-new', 'isf-complete', 'gtsrb', 'mnist', 'cifar', 'cifar100'])
 # Whether to augment the available training data at the start of the training
 parser.add_argument('--augment', dest='augment_dataset', type=bool, default=False, choices=[True, False])
 # For each real image, how many augmented images should be generated? (Program keeps track of original images via
