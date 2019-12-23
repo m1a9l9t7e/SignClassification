@@ -55,7 +55,7 @@ This section will show you how to train a model or use an existing model to clas
 ### Training a model
 
 ```
-execute main.py
+execute train.py
 ```
 
 You can use a range of options for training, however the defaults are setup in a way that training should work out of the box.
