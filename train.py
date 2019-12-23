@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 # Number of epochs of training. (One epoch uses all training material)
-parser.add_argument('--epoch', dest='epoch', type=int, default=10)
+parser.add_argument('--epoch', dest='epoch', type=int, default=1)
 # Batch size for single training inference
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=10)
 # The model architecture to train (currently only inception-v4 and resnet-101 are available)
@@ -53,6 +53,8 @@ parser.add_argument('--width', dest='width', default='auto')
 parser.add_argument('--channels', dest='channels', type=int, default=3)
 # Dropout, only applied to dense layers (Dropout=percentage of neurons randomly omitted in training)
 parser.add_argument('--dropout', dest='dropout_probability', type=float, default=0.2)
+# Backbone layers won't be trainable
+parser.add_argument('--freeze_backbone', dest='freeze_backbone', action='store_true', default=False)
 
 args = parser.parse_args()
 
@@ -73,7 +75,8 @@ if args.path_to_settings is None:
         'model_name': args.model_name,
         'model_architecture': args.model_architecture,
         'dropout': args.dropout_probability,
-        'epoch': args.epoch
+        'epoch': args.epoch,
+        'freeze_backbone': args.freeze_backbone
     })
 
 else:

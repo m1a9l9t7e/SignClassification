@@ -37,6 +37,8 @@ class DataManager:
         if not (len(self.classes_train) <= 1 or len(self.classes_test) <= 1):  # either test or train data was not found
             if len(self.classes_train) != len(self.classes_test):
                 print("Warning: number of classes of train and test set don't match! This will fail if you use Keras!")
+                print("Aborting..")
+                sys.exit(0)
 
         settings.update({'num_classes': len(self.classes_train),
                          'class_names': self.classes_train,

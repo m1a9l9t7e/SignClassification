@@ -7,8 +7,9 @@ from models.inception_v4 import inception_v4_model as build_inception
 def train(settings, data_manager, restore_model=None):
     # Construct model and load imagenet weights
     architecture = settings.get_setting_by_name('model_architecture')
+    backbone_trainable = not settings.get_setting_by_name('freeze_backbone')
     if architecture == 'inception':
-        model = build_inception(settings, load_imagenet_weights=(restore_model is None))
+        model = build_inception(settings, load_imagenet_weights=(restore_model is None), trainable=backbone_trainable)
     elif architecture == 'resnet':
         model = build_resnet(settings, load_imagenet_weights=(restore_model is None))
     else:
@@ -36,13 +37,23 @@ def evaluate_images_model_loaded(settings, model, images, labels=None, show=True
     predictions = []
 
     for i in range(len(images)):
+
         predicted_class = settings.get_setting_by_name('class_names')[np.argmax(predictions_valid[i])]
         predictions.append(predicted_class)
 
         if not show:
             continue
 
-        print(str(i), ': ', predicted_class)
+        indicees = np.argpartition(predictions_valid[i], -4)[-4:]
+        classes = predictions_valid[i][indicees]
+        idx = np.argsort(classes)[::-1]
+        classes = np.array(classes)[idx]
+        indicees = np.array(indicees)[idx]
+        _class_names = np.array(settings.get_setting_by_name('class_names'))[indicees]
+
+        print('Predictions: ')
+        for k in range(len(indicees)):
+            print(str(k + 1) + '. ', _class_names[k], ' with a confidence of ', np.round(classes[k], 2))
 
         if labels is not None:
             # print(predicted_class, ' vs ', settings.get_setting_by_name('class_names')[np.argmax(labels[i])])
