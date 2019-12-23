@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 # Number of epochs of training. (One epoch uses all training material)
-parser.add_argument('--epoch', dest='epoch', type=int, default=1)
+parser.add_argument('--epochs', dest='epochs', type=int, default=2)
 # Batch size for single training inference
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=10)
 # The model architecture to train (currently only inception-v4 and resnet-101 are available)
@@ -75,7 +75,7 @@ if args.path_to_settings is None:
         'model_name': args.model_name,
         'model_architecture': args.model_architecture,
         'dropout': args.dropout_probability,
-        'epoch': args.epoch,
+        'epochs': args.epochs,
         'freeze_backbone': args.freeze_backbone
     })
 

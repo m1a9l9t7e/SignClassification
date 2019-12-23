@@ -80,7 +80,7 @@ Using the following should yield the best results
 
 Here are some parameters to adjust training
 
-* epoch
+* epochs
 ```
 The number of epochs to train for. This parameter is important to avoid over/underfitting.
 One epoch uses all available training material

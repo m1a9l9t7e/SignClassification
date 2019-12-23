@@ -22,7 +22,7 @@ def train(settings, data_manager, restore_model=None):
 
     # Start Fine-tuning
     model.fit_generator(data_manager.yield_train_batch(settings.get_setting_by_name('batch_size')),
-                        nb_epoch=settings.get_setting_by_name('epoch'),
+                        nb_epoch=settings.get_setting_by_name('epochs'),
                         samples_per_epoch=data_manager.get_number_train_samples(),
                         verbose=1,
                         validation_data=data_manager.yield_test_batch(settings.get_setting_by_name('batch_size')),
