@@ -411,69 +411,6 @@ def save_response_content(response, destination):
                 f.write(chunk)
 
 
-def convert_ppm_to_png(path_to_data):
-    subdirs = list(os.walk(path_to_data))[0][1]
-    for i in range(len(subdirs)):
-        path = os.path.join(path_to_data, subdirs[i])
-        list_dir = os.listdir(path)
-        for image in list_dir:
-            if '.csv' in image:
-                os.remove(os.path.join(path, image))
-            else:
-                path_to_img = os.path.join(path, image)
-                print('pnmtopng '+path_to_img+' > .'+str(path_to_img).split('.')[1]+'.png')
-                os.system('pnmtopng '+path_to_img+' > .'+str(path_to_img).split('.')[1]+'.png')
-                os.remove(path_to_img)
-
-
-def change_image_mode_to_rgb(path_to_data):
-    for path in os.walk(path_to_data):
-        if get_file_type(path_to_data) == 'subdir':
-            change_image_mode_to_rgb(path)
-        elif get_file_type(path_to_data) == 'image':
-            if not '.csv' in image:
-                image = Image.open(path)
-                mode = image.mode
-                if mode != 'RGB':
-                    print(path + ' mode: ' + str(mode))
-                    image.convert('RGB').save(path)
-        else:
-            print('ERROR: file type not supported!')
-            sys.exit(0)
-
-
-def sliding_window(image, width, height, stride):
-    """
-    :param image: Image on which sliding window is to be performed
-    :param width: width of sliding window
-    :param height: height of sliding window
-    :param stride: stride of sliding window (equal for both axis)
-    :return: An array of sub-images extracted by the sliding window process
-    """
-    print(image.shape)
-    horizontal_steps = (image.shape[1] - width - 1) / stride + 1
-    vertical_steps = (image.shape[0] - height - 1) / stride + 1
-
-    images = []
-    window = []
-
-    cv2.imshow('original image', image)
-    cv2.waitKey(0)
-
-    for i in range(vertical_steps):
-        for j in range(horizontal_steps):
-            window = []
-            for k in range(width):
-                row = []
-                for l in range(height):
-                    row.append(image[i*stride][j*stride])
-                window.append(row)
-        images.append(window)
-        cv2.imshow('window', window)
-        cv2.waitKey(0)
-    return images
-
-
 def get_file_type(path_to_file):
     """
     :param path_to_file: path to file
