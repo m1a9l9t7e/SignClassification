@@ -24,4 +24,4 @@ images = util.read_any_data(args.path_to_data, settings=settings)
 
 # get model path and restore and evaluate model
 path_to_model = settings.get_setting_by_name('model_save_path')
-model_util.evaluate_images(settings, path_to_model, images)
+model_util.evaluate_images(settings, path_to_model, images, show=True)

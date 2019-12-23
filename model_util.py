@@ -60,14 +60,14 @@ def evaluate_images_model_loaded(settings, model, images, labels=None, show=True
     return predictions
 
 
-def evaluate_images(settings, path_to_model, images, labels=None):
+def evaluate_images(settings, path_to_model, images, labels=None, show=True):
     architecture = settings.get_setting_by_name('model_architecture')
     if architecture == 'inception':
         model = build_inception(settings, load_imagenet_weights=False)
     elif architecture == 'resnet':
         model = build_resnet(settings, load_imagenet_weights=False)
     else:
-        print('Error: model architecture ' + architecture + ' is currently not supported')
+        print('Error: model architecture ' + architecture + ' is not supported')
         return None
     model.load_weights(path_to_model, by_name=True)
-    evaluate_images_model_loaded(settings, model, images, settings, labels)
+    evaluate_images_model_loaded(settings, model, images, labels=labels, show=show)

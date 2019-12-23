@@ -99,5 +99,12 @@ execute test.py
 ```
 
 Here you only need to specify 
-* The path to a trained model
+* The path to the settings of trained model
 * The path to a folder with images to be classified 
+
+E.g.
+
+
+```
+test.py --settings ./training_results/my_model/settings.txt --data path/to/images
+```
