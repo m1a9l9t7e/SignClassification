@@ -154,10 +154,10 @@ def resnet101_model(settings, load_imagenet_weights=True):
 
     if K.image_dim_ordering() == 'th':
         # Use pre-trained weights for Theano backend
-        weights_path = 'imagenet_weights/resnet101_weights_th.h5'
+        weights_path = settings.RESNET_101_WEIGHTS_PATH
     else:
         # Use pre-trained weights for Tensorflow backend
-        weights_path = 'imagenet_weights/resnet101_weights_tf.h5'
+        weights_path = settings.RESNET_101_WEIGHTS_PATH
 
     if load_imagenet_weights:
         model.load_weights(weights_path, by_name=True)

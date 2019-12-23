@@ -8,11 +8,13 @@ class Settings:
     New settings can be added and updated dynamically through the use of the SettingsItem class.
     During runtime settings should be retrieved via get_settings_by_name(settings_name).
     """
+    INCEPTION_V4_WEIGHTS_PATH = 'imagenet_weights/inception-v4_weights_th_dim_ordering_th_kernels.h5'
+    RESNET_101_WEIGHTS_PATH = 'imagenet_weights/resnet101_weights_th.h5'
     separator = ';'
-    models_path = '.'+os.sep+'training_results'+os.sep
-    save_path_from_model_root = os.sep+'saves'+os.sep
-    logs_path_from_model_root = os.sep+'logs'+os.sep
-    output_path_from_model_root = os.sep+'output'+os.sep
+    models_path = '.' + os.sep + 'training_results' + os.sep
+    save_path_from_model_root = os.sep + 'saves' + os.sep
+    logs_path_from_model_root = os.sep + 'logs' + os.sep
+    output_path_from_model_root = os.sep + 'output' + os.sep
     data_path_from_root = '.' + os.sep + 'data'
     export_dir_name = 'export'
     import_dir_name = 'import'
@@ -65,7 +67,8 @@ class Settings:
         settings_print = []
         for settings_item in self.settings:
             settings_print.append(
-                settings_item.name + self.separator + str(settings_item.value) + self.separator + settings_item.type + self.separator + str(
+                settings_item.name + self.separator + str(
+                    settings_item.value) + self.separator + settings_item.type + self.separator + str(
                     settings_item.is_list) + '\n')
 
         file = open(self.settings_path, 'w')
@@ -156,12 +159,23 @@ class Settings:
         width = self.get_setting_by_name('width')
         height = self.get_setting_by_name('height')
         if model_architecture == 'inception':
+            if not os.path.isfile(self.INCEPTION_V4_WEIGHTS_PATH):
+                print("ERROR: weights for inception-v4 not found. Download them from "
+                      "https://github.com/kentsommer/keras-inceptionV4/releases/download/2.0/inception"
+                      "-v4_weights_tf_dim_ordering_tf_kernels.h5 "
+                      " and save them at " + self.INCEPTION_V4_WEIGHTS_PATH)
+                sys.exit(0)
             if width == 'auto' or height == 'auto':
                 self.update({'width': 299, 'height': 299}, write_to_file=True)
             elif not (width == 299 and height == 299):
                 print('Warning: default input dimensions for inception are (299, 299, 3).'
                       'This will likely fail if you don\'t know what you\'re doing.')
         elif model_architecture == 'resnet':
+            if not os.path.isfile(self.RESNET_101_WEIGHTS_PATH):
+                print("ERROR: weights for resnet-101 not found. Download them from "
+                      "https://drive.google.com/file/d/0Byy2AcGyEVxfTmRRVmpGWDczaXM/view"
+                      " and save them at " + self.RESNET_101_WEIGHTS_PATH)
+                sys.exit(0)
             if width == 'auto' or height == 'auto':
                 self.update({'width': 224, 'height': 224}, write_to_file=True)
             elif not (width == 224 and height == 224):
@@ -170,10 +184,10 @@ class Settings:
 
         if args.dataset_name == 'mnist' and args.channels != 1:
             print('WARNING: mnist data has only one channel, but --channels was parsed as ', args.channels)
-        if self.get_setting_by_name('width') * self.get_setting_by_name('height') * self.get_setting_by_name('batch_size') * 32 > 1073741824 * 4:
+        if self.get_setting_by_name('width') * self.get_setting_by_name('height') * self.get_setting_by_name(
+                'batch_size') * 32 > 1073741824 * 4:
             print('WARNING: A single Batch exceeds 4GB of memory.')
             input('press any key to continue...')
-
 
 
 class SettingsItem:
@@ -182,6 +196,7 @@ class SettingsItem:
     The meta data is needed to automatically save and restore the data in its correct form.
     Supported data types are: int, str, bool, float.
     """
+
     def __init__(self, name, type, value, is_list=False, read=False):
         self.name = name
         if type not in {'int', 'str', 'bool', 'float'}:
@@ -231,4 +246,4 @@ class SettingsItem:
         self.value = value
 
     def __str__(self):
-        return self.name+': '+str(self.value)+' (type: '+str(self.type)+', list: '+str(self.is_list)+')'
+        return self.name + ': ' + str(self.value) + ' (type: ' + str(self.type) + ', list: ' + str(self.is_list) + ')'
