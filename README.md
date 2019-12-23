@@ -38,6 +38,7 @@ Additionally, you will need to install the tensorflow python package, depending 
 If you have an Nvidia GPU and CUDA set up, install tensorflow-gpu
 Otherwise, install tensorflow
 ```
+Note that the tensorflow version is important, the correct version to use is specified in requirements.txt 
 
 If you want to train a model, you also need to download the necessary imagenet weights
 
