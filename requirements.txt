@@ -1,0 +1,17 @@
+Pillow
+opencv-python
+numpy
+ascii-graph
+Augmentor
+Keras==1.2.2
+
+# One of the following, depending on your hardware:
+# tensorflow
+# tensorflow-gpu==1.13.1
+
+
+# The following are not really needed at this time
+# requests
+# h5py
+# tqdm
+# joblib
