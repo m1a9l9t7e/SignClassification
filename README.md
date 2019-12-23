@@ -63,7 +63,7 @@ You can use a range of options for training, however the defaults are setup in a
 If you want to save the model after training and execute it on the test data, you need to supply the following options
 
 ```
-execute main.py --save --execute
+execute train.py --save --execute
 ```
 
 
