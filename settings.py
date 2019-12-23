@@ -8,8 +8,8 @@ class Settings:
     New settings can be added and updated dynamically through the use of the SettingsItem class.
     During runtime settings should be retrieved via get_settings_by_name(settings_name).
     """
-    INCEPTION_V4_WEIGHTS_PATH = 'imagenet_weights/inception-v4_weights_th_dim_ordering_th_kernels.h5'
-    RESNET_101_WEIGHTS_PATH = 'imagenet_weights/resnet101_weights_th.h5'
+    INCEPTION_V4_WEIGHTS_PATH = os.path.join('imagenet_weights', 'inception-v4_weights_tf_dim_ordering_tf_kernels.h5')
+    RESNET_101_WEIGHTS_PATH = os.path.join('imagenet_weights', 'resnet101_weights_tf.h5')
     separator = ';'
     models_path = '.' + os.sep + 'training_results' + os.sep
     save_path_from_model_root = os.sep + 'saves' + os.sep

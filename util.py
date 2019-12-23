@@ -1,7 +1,4 @@
 import datetime
-
-import PIL
-
 import cv2
 import os
 import shutil
@@ -9,7 +6,6 @@ import sys
 import csv
 import zipfile
 import Augmentor
-from PIL import Image
 import requests
 from shutil import copyfile
 import numpy as np
@@ -71,7 +67,7 @@ def get_necessary_dataset(dataset_name, data_dir):
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     if not os.path.exists(data_dir + os.sep + dataset_name):
-        print('Downloading..')
+        print('Downloading ' + str(dataset_name) + ' dataset..')
         if dataset_name == 'isf':
             download_file_from_google_drive('1Xvw7w3XKNLPWwfCZMKordtS7c-sIc_cs', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'isf-new':
@@ -82,8 +78,6 @@ def get_necessary_dataset(dataset_name, data_dir):
             download_file_from_google_drive('1SnQphh6TpDShavXDT6fpeyT2I9xzEa6T', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'mnist':
             download_file_from_google_drive('1I5J1OZPti20w8zFGYsBqbyaiN7X8z4iB', data_dir + os.sep + 'data.zip')
-        elif dataset_name == 'sliding_window':
-            download_file_from_google_drive('1r84rQCFzj7VT2OlHuvRdeCBobgLvhnlr', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'cifar':
             download_file_from_google_drive('1FNCLe8LRBIysWw_li7lQXVPOM_rPAb3A', data_dir + os.sep + 'data.zip')
         elif dataset_name == 'cifar100':
@@ -97,33 +91,6 @@ def get_necessary_dataset(dataset_name, data_dir):
         print('Deleting zip..')
         os.remove(data_dir + os.sep + 'data.zip')
     return data_dir + os.sep + dataset_name + os.sep + 'train', data_dir + os.sep + dataset_name + os.sep + 'test'
-
-
-def get_necessary_data(data_name, data_dir):
-    """
-    The only difference to get_necessary_data_set is that this method doesn't
-    expect the directory structure of train and test data.
-    If data set is missing, download und unzip data set from cloud.
-    :param data_name: name of the test data.
-                         Choices: 'sliding_window' a list of videos for sliding window to be performed on.
-    :param data_dir: the directory, to which the data set will be extracted
-    :return: path to the training data directory and path to the test data directory
-    """
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-    if not os.path.exists(data_dir + os.sep + data_name):
-        print('Downloading..')
-        if data_name == 'sliding_window':
-            download_file_from_google_drive('1NNHMEyL-2of-SdpXprXAQW9PJJ10g6_j', data_dir + os.sep + 'data.zip')
-        elif data_name == 'signs_clean':
-            download_file_from_google_drive('10LsjJM56uOBy7xtrl3Ey8hJ0qnSp_9cx', data_dir + os.sep + 'data.zip')
-        print('Unzipping..')
-        zip_ref = zipfile.ZipFile(data_dir + os.sep + 'data.zip', 'r')
-        zip_ref.extractall(data_dir)
-        zip_ref.close()
-        print('Deleting zip..')
-        os.remove(data_dir + os.sep + 'data.zip')
-    return data_dir + os.sep + data_name
 
 
 def import_latest_model(import_path='.'):
