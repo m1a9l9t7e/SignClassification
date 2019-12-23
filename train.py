@@ -1,3 +1,7 @@
+import logging
+logging.getLogger('tensorflow').disabled = True
+logging.getLogger('numpy').disabled = True
+
 import argparse
 import datetime
 import warnings
@@ -113,5 +117,6 @@ if args.execute:
         model_util.evaluate_images_model_loaded(settings, model, images, labels=labels)
     cv2.destroyAllWindows()
 
-# if args.export:
-#     TODO
+# Export model to zip. Note that the model must have been saved or restored for this to work
+if args.export:
+    util.export_model_to_production(settings)

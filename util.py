@@ -144,7 +144,7 @@ def import_latest_model(import_path='.'):
             time = file.readlines()[0]
             print('Model last updated on ', time)
             settings = Settings(None, restore_from_path=path_to_import+os.sep+'settings.txt')
-            settings.update({'frozen_model_save_path': os.path.abspath(path_to_import+os.sep+'inference.pb')})
+            settings.update({'model_save_path': os.path.abspath(path_to_import+os.sep+'model.h5')})
             return settings
     elif os.path.exists(path_to_import):
         file = open(path_to_import + os.sep + 'time_of_export.txt', 'r')
@@ -155,7 +155,7 @@ def import_latest_model(import_path='.'):
         print('Downloading latest sign-classification model..')
         previous_time = None
 
-    download_file_from_google_drive('1YJ-WpXe8PBt_1weDhK84xVi-37p736j6', 'data.zip')
+    download_file_from_google_drive('128LgaMShSbeTVG9FWxuFM1heOgGiRJOt', 'data.zip')
     zip_ref = zipfile.ZipFile('data.zip', 'r')
     zip_ref.extractall(path_to_import)
     zip_ref.close()
@@ -170,8 +170,8 @@ def import_latest_model(import_path='.'):
     else:
         print('Model already up-to-date.')
 
-    settings = Settings(None, restore_from_path=path_to_import + os.sep + 'settings.txt')
-    settings.update({'frozen_model_save_path': os.path.abspath(path_to_import+os.sep+'inference.pb')})
+    settings = Settings(None, restore_from_path=os.path.join(path_to_import, 'settings.txt'))
+    settings.update({'model_save_path': os.path.abspath(path_to_import+os.sep+'model.h5')})
 
     return settings
 
@@ -189,14 +189,14 @@ def export_model_to_production(settings, export_path=None, overwrite=True, uploa
             print('Aborting')
             sys.exit(0)
 
-    path_to_frozen = settings.get_setting_by_name('frozen_model_save_path')
+    path_to_model = settings.get_setting_by_name('model_save_path')
     path_to_settings = settings.settings_path
 
-    new_path_to_frozen = export_path + os.sep + 'inference.pb'
-    new_path_to_settings = export_path + os.sep + 'settings.txt'
+    new_path_to_model = os.path.join(export_path, 'model.h5')
+    new_path_to_settings = os.path.join(export_path, 'settings.txt')
 
     os.mkdir(export_path)
-    shutil.copy(path_to_frozen, new_path_to_frozen)
+    shutil.copy(path_to_model, new_path_to_model)
     shutil.copy(path_to_settings, new_path_to_settings)
     time_of_export_file = export_path + os.sep + 'time_of_export.txt'
     file = open(time_of_export_file, 'w')

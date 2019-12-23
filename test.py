@@ -1,4 +1,8 @@
-import sys
+import logging
+
+logging.getLogger('tensorflow').disabled = True
+logging.getLogger('numpy').disabled = True
+
 from settings import Settings
 import argparse
 import warnings
@@ -10,7 +14,7 @@ warnings.filterwarnings("ignore")
 parser = argparse.ArgumentParser()
 # Path to folder containing images/videos. This need to be provided
 parser.add_argument('--data', dest='path_to_data')
-# Path to settings
+# Path to settings, if left blank, the latest model will be downloaded automatically!
 parser.add_argument('--settings', dest='path_to_settings', default=None)
 args = parser.parse_args()
 

@@ -1,11 +1,11 @@
 Pillow
 opencv-python
-numpy
 ascii-graph
 Augmentor
 requests
 h5py
 tqdm
+numpy==1.16.4
 Keras==1.2.2
 
 # One of the following, depending on your hardware:
