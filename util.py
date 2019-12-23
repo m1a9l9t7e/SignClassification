@@ -162,7 +162,7 @@ def export_model_to_production(settings, export_path=None, overwrite=True, uploa
     new_path_to_model = os.path.join(export_path, 'model.h5')
     new_path_to_settings = os.path.join(export_path, 'settings.txt')
 
-    os.mkdir(export_path)
+    os.makedirs(export_path, exist_ok=True)
     shutil.copy(path_to_model, new_path_to_model)
     shutil.copy(path_to_settings, new_path_to_settings)
     time_of_export_file = export_path + os.sep + 'time_of_export.txt'
