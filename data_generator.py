@@ -120,6 +120,8 @@ class DataManager:
             images = []
             labels = []
             for i in range(batch_size):
+                if index + i >= self.get_number_train_samples():
+                    break
                 image = cv2.imread(files[index + i])
                 images.append(transform(image, self.settings))
                 label = self.encode_one_hot(len(self.classes_train), label_indices[index + i])
@@ -136,6 +138,8 @@ class DataManager:
             images = []
             labels = []
             for i in range(batch_size):
+                if index + i >= self.get_number_test_samples():
+                    break
                 image = cv2.imread(files[index + i])
                 images.append(transform(image, self.settings))
                 label = self.encode_one_hot(len(self.classes_test), label_indices[index + i])
