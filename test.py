@@ -1,14 +1,12 @@
 import logging
-
-logging.getLogger('tensorflow').disabled = True
-logging.getLogger('numpy').disabled = True
-
 from settings import Settings
 import argparse
 import warnings
 import util
 import model_util
 
+logging.getLogger('tensorflow').disabled = True
+logging.getLogger('numpy').disabled = True
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()

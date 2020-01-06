@@ -1,7 +1,4 @@
 import logging
-logging.getLogger('tensorflow').disabled = True
-logging.getLogger('numpy').disabled = True
-
 import argparse
 import datetime
 import warnings
@@ -12,6 +9,8 @@ import model_util
 from data import DataManager
 from settings import Settings
 
+logging.getLogger('tensorflow').disabled = True
+logging.getLogger('numpy').disabled = True
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
@@ -82,11 +81,12 @@ if args.path_to_settings is None:
         'epochs': args.epochs,
         'freeze_backbone': args.freeze_backbone
     })
+    restore_model = None
 
 else:
     settings = Settings(None, restore_from_path=args.path_to_settings)
+    restore_model = settings.get_setting_by_name('model_save_path')
 
-# check if model was downloaded
 settings.assess(args)
 
 print('Loading and preparing data..')
@@ -96,7 +96,7 @@ data_manager = DataManager(settings)
 if args.train:
     try:
         print('Training Model..')
-        model = model_util.train(settings, data_manager)
+        model = model_util.train(settings, data_manager, restore_model=restore_model)
     except KeyboardInterrupt:
         print('Stop training..')
 
